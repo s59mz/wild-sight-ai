@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 #
 # Eagle-Eye-AI
-# Smart Following Camera with Face Recognition
+# Smart Following Camera with Animal Detection
 #   for Kria KR260 Board
 #
 # Created by: Matjaz Zibert S59MZ - July 2024
 #
 # Camera Controller
-#   - Moves tha camera to follow a detected face
-#   - Listens for the detected face coordinates on ROS2 topic
+#   - Moves tha camera to follow a detected object/animal
+#   - Listens for the detected object coordinates on ROS2 topic
 #   - Calculates the required camera movement and sends motor
 #     commands to the Rotator Controller through ROS2 topic messages
 #
@@ -24,7 +24,7 @@ import serial
 from rclpy.node import Node
 
 from rotator_interfaces.msg import MotorCmd, SwitchCmd
-from eagle_eye_interfaces.msg import FaceDetect
+from wild_sight_interfaces.msg import ObjectDetect
 
 class CameraControllerNode(Node): 
     def __init__(self):
@@ -38,7 +38,7 @@ class CameraControllerNode(Node):
         self.frame_timeout_ = self.get_parameter("frame_timeout").value
 
         self.subscriber_ = self.create_subscription(
-            FaceDetect, "face_detect", self.callback_face_detect, 10
+            ObjectDetect, "object_detect", self.callback_object_detect, 10
         )
 
         # create publishers
@@ -46,11 +46,11 @@ class CameraControllerNode(Node):
         self.switch_publisher_ = self.create_publisher(SwitchCmd, "switch_control", 10)
 
         self.lamp_on_ = False
-        self.face_detected_ = False
+        self.object_detected_ = False
         self.updating_timer_ = None
 
-        # face tracking state
-        self.face_tracking_ = False
+        # object tracking state
+        self.object_tracking_ = False
         self.frame_count_ = 0
 
         # motor speed definition
@@ -65,45 +65,45 @@ class CameraControllerNode(Node):
 
         self.get_logger().info("Node Created")
 
-    def callback_face_detect(self, msg: FaceDetect):
-        if (msg.face_detected):
+    def callback_object_detect(self, msg: ObjectDetect):
+        if (msg.object_detected):
             self.frame_count_ = 0
 
-            # calculate face position relative to frame center
+            # calculate object position relative to frame center
             center_x: int = msg.frame_width / 2;
             center_y: int = msg.frame_height / 2;
 
-            face_center_x: int = msg.bbox_x + msg.bbox_width / 2;
-            face_center_y: int = msg.bbox_y + msg.bbox_height / 2;
+            object_center_x: int = msg.bbox_x + msg.bbox_width / 2;
+            object_center_y: int = msg.bbox_y + msg.bbox_height / 2;
 
-            self.offset_y = face_center_y - center_y;
-            self.offset_x = face_center_x - center_x;
+            self.offset_y = object_center_y - center_y;
+            self.offset_x = object_center_x - center_x;
 
             # calculate required motor speed for tracking
             if (abs(self.offset_x) > msg.bbox_width / 2):
                 self.pan_speed_ = (int) (- self.offset_x * 240 / msg.frame_width)
             else:
-                # face is centered enough in X
+                # object is centered enough in X
                 self.pan_speed_ = 0
 
             if (abs(self.offset_y) > msg.bbox_height / 4):
                 self.tilt_speed_ = (int) (- self.offset_y)
             else:
-                # face is centered enough in Y
+                # object is centered enough in Y
                 self.tilt_speed_ = 0
 
-            if not self.face_tracking_:
-                self.start_face_tracking()
+            if not self.object_tracking_:
+                self.start_object_tracking()
 
         else:
-            if self.face_tracking_:
+            if self.object_tracking_:
                 self.frame_count_ += 1
 
                 if (self.frame_count_ > self.frame_timeout_):
-                    self.stop_face_tracking()
+                    self.stop_object_tracking()
 
-    def start_face_tracking(self):
-        self.face_tracking_ = True
+    def start_object_tracking(self):
+        self.object_tracking_ = True
 
         # start the motor imediately
         self.update_motor_speed()
@@ -117,8 +117,8 @@ class CameraControllerNode(Node):
                                                  self.update_motor_speed)
 
 
-    def stop_face_tracking(self):
-        self.face_tracking_ = False
+    def stop_object_tracking(self):
+        self.object_tracking_ = False
 
         # stop the motor imediately
         self.pan_speed_ = 0

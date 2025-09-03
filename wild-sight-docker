@@ -63,8 +63,8 @@ COPY ros2_ws/src src
 RUN /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build"
 
 # install application startup script
-ADD scripts/run_wild_sight_ai.sh .
+ADD scripts/run.sh .
 ADD scripts/test.sh .
-RUN chmod +x run_wild_sight_ai.sh
+RUN chmod +x run.sh
 RUN chmod +x test.sh
 

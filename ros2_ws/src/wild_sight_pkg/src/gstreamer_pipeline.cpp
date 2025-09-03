@@ -140,7 +140,7 @@ public:
             msg.frame_width = res_bbox->width;
             msg.frame_height = res_bbox->height;
             msg.bbox_x = obj_bbox->x;
-            msg.bbox_y = obj->y;
+            msg.bbox_y = obj_bbox->y;
             msg.bbox_width = obj_bbox->width;
             msg.bbox_height = obj_bbox->height;
             msg.object_detected = true;
@@ -165,9 +165,10 @@ public:
         if (!cam_orient) {
             cam_orient = new CameraOrientation();
 	}
-#if 0 
+
 	// Get Inference Metadata
         GstInferenceMeta *inference_meta = reinterpret_cast<GstInferenceMeta *>(meta);
+#if 0
 
 	// Get the parent prediction struct
         if (inference_meta && inference_meta->prediction) {

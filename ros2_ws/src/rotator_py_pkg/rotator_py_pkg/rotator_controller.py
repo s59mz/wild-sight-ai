@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 # Eagle-Eye-AI
-# Smart Following Camera with Face Recognition
+# Smart Following Camera with Animal Detection
 #   for Kria KR260 Board
 #
 # Created by: Matjaz Zibert S59MZ - July 2024
@@ -25,7 +25,7 @@ from pymodbus.client import ModbusSerialClient as ModbusClient
 from rclpy.node import Node
 
 from rotator_interfaces.msg import MotorCmd, SwitchCmd
-from eagle_eye_interfaces.msg import CameraOrientation
+from wild_sight_interfaces.msg import CameraOrientation
 
 
 # ROS2 Controller Node
