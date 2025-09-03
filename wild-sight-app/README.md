@@ -13,7 +13,7 @@ wild-sight-app/
 │   └── FindGStreamer.cmake
 ├── CMakeLists.txt
 ├── config
-│   └── facedetect
+│   └── detect
 │       ├── aiinference.json
 │       ├── drawresult.json
 │       └── preprocess.json
@@ -33,7 +33,7 @@ wild-sight-app/
 ## Key Components
 
 -	`src/vvas_airender.cpp`: This file has been modified to include the camera status line, which displays real-time camera orientation on the screen
--	`config/facedetect/*.json`: These configuration files have updated paths for firmware and the VVAS library.
+-	`config/detect/*.json`: These configuration files have updated paths for firmware and the VVAS library.
 - `CMakeLists.txt`: Adapted for the updated configuration and paths.
 
 The other files and models are directly taken from the official **Smartcam** demo application by AMD and remain unmodified.
@@ -58,12 +58,11 @@ The Dockerfile is designed to automate the build process for the Wild-Sight-AI a
 
 ## Usage
 
-Once built, you can run the Wild-Sight-AI application within the Docker container on the KRIA board. The application will provide real-time face tracking and display the camera status line as described.
+Once built, you can run the Wild-Sight-AI application within the Docker container on the KRIA board. The application will provide real-time animal tracking and display the camera status line as described.
 
 For detailed instructions on running the application, refer to the project documentation published on [Hackster.io](https://www.hackster.io/matjaz4/eagleeye-ai-smart-following-camera-with-face-recognition-1b0f65).
 
 ## Additional Notes
 
 - This application is tailored for the KRIA™ KR260 board and is not intended to be built on a host PC.
-- The models directory remains unchanged from the Smartcam demo application and includes pre-trained models required for face detection.
 

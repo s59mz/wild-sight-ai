@@ -78,11 +78,11 @@ install(FILES
     )
 
 install(DIRECTORY
-    config/facedetect
+    config/detect
     DESTINATION ${INSTALL_PATH}/share/vvas/)
 
 install(DIRECTORY
-    models/kr260/densebox_640_360
+    models/kr260/megadetector
     DESTINATION ${INSTALL_PATH}/share/vitis_ai_library/models/)
 
 set(VERSION "1.0.1")
