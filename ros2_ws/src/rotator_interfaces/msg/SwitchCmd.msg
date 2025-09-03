@@ -1,0 +1,1 @@
+bool switch_on

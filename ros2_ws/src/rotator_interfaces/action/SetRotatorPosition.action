@@ -1,0 +1,11 @@
+# goal
+int32 pan_angle
+int32 tilt_angle
+---
+# result
+bool success
+string message
+---
+# feedback
+int32 pan_angle
+int32 tilt_angle

@@ -1,0 +1,21 @@
+{
+   "model-name": "megadetector",
+   "num-labels": 3,
+   "labels": [
+      {
+       "label": 1,
+       "name": "animal",
+       "display_name": "animal"
+      },
+      {
+       "label": 2,
+       "name": "person",
+       "display_name": "person"
+      },
+      {
+       "label": 3,
+       "name": "vehicle",
+       "display_name": "vehicle"
+      }
+   ]
+}

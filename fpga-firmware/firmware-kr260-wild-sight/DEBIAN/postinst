@@ -1,0 +1,2 @@
+#!/bin/sh
+chown -R root:root /lib/firmware/xilinx/kr260-wild-sight

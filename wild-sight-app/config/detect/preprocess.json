@@ -1,0 +1,18 @@
+{     
+  "xclbin-location": "/lib/firmware/xilinx/kr260-wild-sight/kr260-wild-sight.xclbin",
+  "vvas-library-repo": "/opt/xilinx/kr260-wild-sight/lib",
+  "element-mode": "transform",
+  "kernel": {
+    "kernel-name": "pp_pipeline_accel:{pp_pipeline_accel_1}",
+    "library-name": "libvvas_xpp.so",
+    "config": {
+      "debug_level": 0,
+      "mean_r": 128,
+      "mean_g": 128,
+      "mean_b": 128,
+      "scale_r": 1,
+      "scale_g": 1,
+      "scale_b": 1
+    } 
+  }
+}

@@ -1,0 +1,140 @@
+# Copyright (C) 2022, Advanced Micro Devices, Inc. All rights reserved.
+# SPDX-License-Identifier: MIT
+
+FROM kria-runtime:3.5.0
+
+LABEL Description="Docker developer image for kria" Vendor="AMD-Xilinx" Version="1.0"
+ARG BUILD_DATE
+ARG BUILD_VERSION
+LABEL org.label-schema.schema-version="1.0"
+LABEL org.label-schema.build-date=$BUILD_DATE
+LABEL org.label-schema.version=$BUILD_VERSION
+
+# to avoid configuring tzdata for opencv
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Add pgRouting launchpad repository
+RUN \
+apt update && apt install --yes --no-install-recommends \
+    git \
+    cmake \
+    build-essential \ 
+    libasound-dev \
+    libgstreamer1.0-dev \
+    libopencv-dev \
+    libgoogle-glog-dev \
+    sudo \
+    libprotobuf-dev \
+    bash \
+    libjansson-dev \
+    vim \
+    libgstrtspserver-1.0-dev \
+    libgstreamer1.0-dev \
+    libboost-serialization1.74.0 \
+    libboost-serialization1.74-dev \
+    libzmq3-dev \
+    libgstreamer-plugins-good1.0-dev \
+    libgstreamer-plugins-base1.0-dev \
+    libgstreamer-plugins-bad1.0-dev \
+    libopencv-dev \
+    libxilinx-vcu-omx-dev \
+    libne10-dev \
+    meson \
+    ninja-build \
+    libjson-glib-dev ;
+
+# get xrt sources
+RUN git clone --depth=1 --branch 202310.2.15.225 https://github.com/Xilinx/XRT.git
+
+# get vvas sources
+RUN git clone --branch VVAS_REL_v3.0 --recurse-submodules https://github.com/Xilinx/VVAS.git
+
+RUN mkdir -p /usr/include/xrt
+
+# C API headers (contain xrt/xrt.h)
+#RUN cp -r /XRT/src/runtime_src/core/include/* /usr/include/xrt/
+RUN cp -r /XRT/src/runtime_src/core/include/* /usr/include/
+RUN cp -r /XRT/src/include/1_2/CL/* /usr/include/xrt/
+
+# C++ headers (xrt/*.hpp and friends):
+# These are under core/include/xrt and core/include/experimental in 2023.1
+RUN cp -r /XRT/src/runtime_src/core/include/xrt /usr/include/
+RUN cp -r /XRT/src/runtime_src/core/include/experimental /usr/include/xrt/
+
+
+# install XRT
+RUN cat >/usr/lib/aarch64-linux-gnu/pkgconfig/xrt.pc <<'EOF'
+prefix=/usr
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: xrt
+Description: Xilinx Runtime (userspace)
+Version: 2.15.0
+Libs: -L${libdir} -lxrt_core -lxrt_coreutil -lxrt++
+Cflags: -I${includedir}
+EOF
+
+LIBDIR=/usr/lib/aarch64-linux-gnu
+INCLUDEDIR=/usr/include
+install -d $LIBDIR/pkgconfig
+
+cat > $LIBDIR/pkgconfig/xir.pc <<'EOF'
+prefix=/usr
+libdir=${prefix}/lib/aarch64-linux-gnu
+includedir=${prefix}/include
+Name: xir
+Description: Xilinx IR (Vitis AI 3.5)
+Version: 3.5.0
+Libs: -L${libdir} -lxir
+Cflags: -I${includedir}
+EOF
+
+cat > $LIBDIR/pkgconfig/vart.pc <<'EOF'
+prefix=/usr
+libdir=${prefix}/lib/aarch64-linux-gnu
+includedir=${prefix}/include
+Name: vart
+Description: Vitis AI Runtime (3.5)
+Version: 3.5.0
+Libs: -L${libdir} -lvart-runner
+Cflags: -I${includedir}
+EOF
+
+ENV PKG_CONFIG_PATH=$LIBDIR/pkgconfig:$PKG_CONFIG_PATH
+# pkg-config --modversion xir
+# pkg-config --modversion vart
+
+ENV C_INCLUDE_PATH=/usr/include/ne10:$C_INCLUDE_PATH
+ENV CPLUS_INCLUDE_PATH=/usr/include/ne10:$CPLUS_INCLUDE_PATH
+
+
+
+#cat >/usr/include/xrt/detail/version.h <<'EOF'
+RUN cat >/usr/include/version.h <<'EOF'
+#pragma once
+// XRT 2023.1 (2.15.0)
+#define XRT_VERSION_MAJOR 2
+#define XRT_VERSION_MINOR 15
+#define XRT_VERSION_PATCH 0
+#define XRT_VERSION_CODE  ((XRT_VERSION_MAJOR << 16) | (XRT_VERSION_MINOR << 8) | (XRT_VERSION_PATCH))
+
+// helpers used by headers
+#define XRT_MAJOR(x)  (((x) >> 16) & 0xff)
+#define XRT_MINOR(x)  (((x) >> 8)  & 0xff)
+#define XRT_PATCH(x)  ((x) & 0xff)
+
+// optional: a string if anything prints it
+#define XRT_VERSION_STRING "2.15.0"
+EOF
+
+# building
+# cd /VVAS/vvas-core
+# rm -rf build
+# meson setup build --prefix=/usr
+# ninja -C build
+# ninja -C build install
+#
+#
+#

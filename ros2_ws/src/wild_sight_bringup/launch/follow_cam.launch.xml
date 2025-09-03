@@ -1,0 +1,23 @@
+<launch>
+    <arg name="camera_url" default="rtsp://192.168.1.11:554/stream1" />
+    <arg name="serial_port" default="/dev/ttyUL0" />
+
+    <node pkg="wild_sight_pkg" exec="gstreamer_pipeline" name="gstreamer_pipeline">
+       <param name="camera_url" value="$(var camera_url)" />
+    </node>
+
+    <node pkg="rotator_py_pkg" exec="rotator_controller" name="rotator_controller">
+       <param name="port" value="$(var serial_port)"/>
+       <param name="baudrate" value="9600"/>
+       <param name="address" value="1"/>
+    </node>
+
+    <node pkg="rotator_py_pkg" exec="camera_controller" name="camera_controller">
+       <param name="updating_period" value="0.2"/>
+       <param name="frame_timeout" value="5"/>
+    </node>
+
+    <node pkg="rotator_py_pkg" exec="led_controller" name="led_controller" />
+    <node pkg="rotator_py_pkg" exec="btn_controller" name="btn_controller" />
+</launch>
+

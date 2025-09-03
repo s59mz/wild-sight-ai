@@ -1,0 +1,19 @@
+{     
+  "xclbin-location": "/lib/firmware/xilinx/kr260-wild-sight/kr260-wild-sight.xclbin",
+  "vvas-library-repo": "/usr/lib/aarch64-linux-gnu",
+  "element-mode": "inplace",
+  "inference-max-queue": 4,
+  "kernel": {
+    "library-name": "libvvascore_dpuinfer-1.0.so",
+    "config": {
+      "model-name": "megadetector",
+      "model-class": "RAWTENSOR",
+      "model-path": "/opt/xilinx/kr260-wild-sight/share/vitis_ai_library/models/",
+      "model-format": "BGR",
+      "vitis-ai-preprocess" : false,
+      "performance-test" : false,
+      "batch-size": 1,
+      "debug-level" : 1
+    }
+  }
+}

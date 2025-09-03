@@ -1,0 +1,9 @@
+Package: firmware-kr260-wild-sight
+Version: 1.0
+Section: base
+Priority: optional
+Architecture: all
+Depends:
+Maintainer: Matjaz Zibert S59MZ
+Description: Wild Sight AI
+ This is a FPGA firmware of the Wild-Sight-AI application for the Kria KR-260 board by AMD.
