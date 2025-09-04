@@ -144,7 +144,8 @@ RUN chmod +x /usr/bin/xbutil
 
 RUN rm -rf vai3.5_kr260*
 
-COPY libdfx.so.1.0 /usr/lib
+# install dfx library needed ror xdputil tools
+COPY libs/libdfx.so.1.0 /usr/lib
 
 # install XRT headers 202310.2.15.225
 RUN git clone --depth=1 --branch 202310.2.15.225 https://github.com/Xilinx/XRT.git
@@ -224,6 +225,11 @@ RUN cd protobuf-3.21.3 \
    && ldconfig \
    && cd .. \
    && rm -rf protobuf-3.21.3 protobuf-3.21.3.tar.gz
+
+
+# Install the missing OpenCV 4.6 libraries, needed for vvas_xinfer 
+COPY libs/opencv406.zip /
+RUN unzip opencv406.zip && rm opencv406.zip && ldconfig
 
 
 # install VVAS 3.0
