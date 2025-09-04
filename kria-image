@@ -1,12 +1,93 @@
-# Copyright (C) 2022, Advanced Micro Devices, Inc. All rights reserved.
-# SPDX-License-Identifier: MIT
-# 
-# Adapted for WildSight-AI application to run on vitis-ai-runtime 3.5.0
-# Removed vitis-ai 2.5 and vvas-essential 2.5
-#    by Matjaz Zibert S59MZ
-#    
+#
+# Wild-Sight-AI
+# Smart Following Camera with Animal Detection
+#   for Kria KR260 Board
+#
+# Created by: Matjaz Zibert S59MZ - August 2025
+#
+# Dockerfile for Kria runtime image
+#
+#
+# Based on Vitis-AI 3.5 
+#   - VART 3.5.0
+#   - XIR 202310.2.15.225
+#   - VVAS 3.0
+#   - XRT 2.15
+#   - OpenCV 4.6
+#   - Protobuf 3.21.3 
+#
+# Required:
+#   - zocl v2.15 kernel module on target
+#   - DPU IP v4.0 on FPGA
+#
+# Design based on Kria KV260 Smartcam Demo App by AMD,
+#    upgraded for using Vitis AI 3.5
+#
+#
+# Hackster.io Project link:
+#     https://www.hackster.io/matjaz4/wildsight-ai-real-time-human-wildlife-conflict-detection-ff65fa
+#
 
-FROM ubuntu:22.04
+
+
+# build the needed OpenCV 4.6 libraries from sources (if not exist already)
+FROM ubuntu:22.04 AS opencv
+
+RUN mkdir -p /out/zip
+
+# comment out this line to build this library file from source
+COPY /libs/opencv406.zip /out/zip
+
+RUN apt update && apt-get install --yes --no-install-recommends \
+        build-essential cmake git ca-certificates \
+        libjpeg-dev libpng-dev libtiff-dev libwebp-dev \
+        libopenjp2-7-dev libtbb-dev zlib1g-dev \
+        zip unzip
+
+RUN mkdir -p /opt/src 
+
+RUN mkdir -p /out/install
+RUN mkdir -p /out/lib/aarch64-linux-gnu
+
+WORKDIR /opt/src
+
+# get sources (inside your KR260 docker)
+RUN git clone --branch 4.6.0 --depth 1 https://github.com/opencv/opencv.git
+RUN git clone --branch 4.6.0 --depth 1 https://github.com/opencv/opencv_contrib.git
+
+RUN mkdir -p opencv/build
+WORKDIR /opt/src/opencv/build
+
+RUN if [ -f /out/zip/opencv406.zip ]; then \
+      echo "Using local OpenCV 4.6 file" ; \
+    else \
+      echo "Building OpenCV 4.6 from sources..." && \
+      \
+      cmake -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=/opt/opencv-4.6 \
+          -DOPENCV_GENERATE_PKGCONFIG=ON \
+          -DBUILD_LIST=core,imgproc,imgcodecs,dnn,highgui,video \
+          -DWITH_TBB=ON -DWITH_IPP=OFF -DWITH_CUDA=OFF -DWITH_GTK=OFF \
+          -DOPENCV_EXTRA_MODULES_PATH=/opt/src/opencv_contrib/modules \
+          .. && \
+      \
+      make -j$(nproc) && make DESTDIR=/out/install install && \
+      \
+      cp /out/install/opt/opencv-4.6/lib/libopencv_core.so.406 /out/lib/aarch64-linux-gnu/ && \
+      cp /out/install/opt/opencv-4.6/lib/libopencv_imgproc.so.406 /out/lib/aarch64-linux-gnu/ && \
+      cp /out/install/opt/opencv-4.6/lib/libopencv_imgcodecs.so.406 /out/lib/aarch64-linux-gnu/ && \
+      cp /out/install/opt/opencv-4.6/lib/libopencv_dnn.so.406 /out/lib/aarch64-linux-gnu/ && \
+      \
+      cd /out && zip -r zip/opencv406.zip lib/* ;\
+   fi
+
+WORKDIR /out
+RUN rm -rf /opt/src 
+
+
+
+# build the main kria runtime image
+FROM ubuntu:22.04 AS image
 
 LABEL Description="Docker run time image for kria boards" Vendor="AMD-Xilinx"
 ARG BUILD_DATE
@@ -55,6 +136,10 @@ RUN apt-get install --yes --no-install-recommends \
     libjpeg-dev \
     libpng-dev \
     libtiff-dev \
+    libwebp-dev \
+    libopenjp2-7-dev \
+    libtbb-dev \
+    zlib1g-dev \
     v4l-utils \
     alsa-base \
     alsa-utils \
@@ -85,7 +170,6 @@ RUN apt-get install --yes --no-install-recommends \
     libgstreamer-plugins-good1.0-0 \
     libgstreamer-plugins-bad1.0-0 \
     gstreamer1.0-plugins-base-apps \
-    gstreamer1.0-libav \
     gstreamer1.0-pulseaudio \
     gstreamer1.0-opencv \
     libv4l2rds0 \
@@ -144,8 +228,10 @@ RUN chmod +x /usr/bin/xbutil
 
 RUN rm -rf vai3.5_kr260*
 
+
 # install dfx library needed ror xdputil tools
 COPY libs/libdfx.so.1.0 /usr/lib
+
 
 # install XRT headers 202310.2.15.225
 RUN git clone --depth=1 --branch 202310.2.15.225 https://github.com/Xilinx/XRT.git
@@ -159,6 +245,7 @@ RUN cp -r /XRT/src/runtime_src/core/include/experimental /usr/include/xrt/
 RUN cp -r /XRT/src/include/1_2/CL/* /usr/include/xrt/
 
 RUN rm -rf XRT
+
 
 # configure pkg
 ENV LIBDIR=/usr/lib/aarch64-linux-gnu
@@ -228,8 +315,13 @@ RUN cd protobuf-3.21.3 \
 
 
 # Install the missing OpenCV 4.6 libraries, needed for vvas_xinfer 
-COPY libs/opencv406.zip /
-RUN unzip opencv406.zip && rm opencv406.zip && ldconfig
+COPY --from=opencv /out/zip/opencv406.zip /
+RUN unzip opencv406.zip && rm opencv406.zip
+
+RUN echo "/lib/aarch64-linux-gnu" >/etc/ld.so.conf.d/opencv-4.6.conf && ldconfig
+
+# clean gstreamer registry
+RUN rm -f ~/.cache/gstreamer-1.0/registry.* 2>/dev/null
 
 
 # install VVAS 3.0
