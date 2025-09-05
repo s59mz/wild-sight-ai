@@ -66,7 +66,7 @@ Wild-Sight-AI is a project designed for the Kria KR260 board that enables AI-dri
     default_camera_url="rtsp://192.168.1.11:554/stream1"
     ```
 
-2. **Build the Docker Image**:
+2. **On First Run Only: Build the Docker Image**:
 
     The build process will take about 2 hours on the Kria board. This cannot be built on a host PC unless you can build docker images for arm64 architecture.
 
@@ -100,14 +100,6 @@ Wild-Sight-AI is a project designed for the Kria KR260 board that enables AI-dri
     colcon build
     ```
 
-3. **Manage Docker Storage**:
-
-    To remove the existing container if storage is limited:
-
-    ```bash
-    docker rmi --force wild-sight-ai
-    ```
-
 ## Running the Application
 
 1. In the running Wild-Sight-AI Docker container:
@@ -125,7 +117,7 @@ Wild-Sight-AI is a project designed for the Kria KR260 board that enables AI-dri
     * To change the RTSP IP camera URL, run the startup script with the new URL:
 
       ```bash
-      ./run_wild_sight_ai.sh rtsp://192.168.1.20:554/stream2
+      ./run_app.sh rtsp://192.168.1.20:554/stream1
       ```
 
     For a visual guide on starting the Wild-Sight-AI application, watch this [YouTube video](https://www.youtube.com/watch?v=IakoRX5yPNo).
