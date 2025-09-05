@@ -31,4 +31,4 @@ docker run \
 -v /lib/firmware/xilinx:/lib/firmware/xilinx \
 -v /run:/run \
 -v ./wild-sight-app:/wild-sight-app \
--it kria-developer:1.0 bash
+-it kria-image:3.5 bash

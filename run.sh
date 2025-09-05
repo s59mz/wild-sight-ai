@@ -28,5 +28,5 @@ docker run \
 -v /sys:/sys \
 -v /etc/vart.conf:/etc/vart.conf \
 -v /lib/firmware/xilinx:/lib/firmware/xilinx \
--v /run:/run \
+-v $(pwd)/ros2_ws:/root/ros2_ws \
 -it wild-sight-ai:1.0 bash
