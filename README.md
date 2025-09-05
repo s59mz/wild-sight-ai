@@ -57,10 +57,10 @@ Wild-Sight-AI is a project designed for the Kria KR260 board that enables AI-dri
 
 1. **Update the RTSP IP Camera URL**:
 
-    Edit the `run_wild_sight_ai.sh` script file in the `scripts` directory and update the `default_camera_url` parameter:
+    Edit the `run_app.sh` script file in the `ros2_ws` directory and update the `default_camera_url` parameter:
 
     ```bash
-    vi scripts/run_wild_sight_ai.sh
+    vi ros2_ws/run_app.sh
 
     # Update line #18 with your IP camera URL:
     default_camera_url="rtsp://192.168.1.11:554/stream1"
@@ -68,7 +68,7 @@ Wild-Sight-AI is a project designed for the Kria KR260 board that enables AI-dri
 
 2. **Build the Docker Image**:
 
-    The build process will take about 8 minutes on the Kria board. This cannot be built on a host PC.
+    The build process will take about 2 hours on the Kria board. This cannot be built on a host PC unless you can build docker images for arm64 architecture.
 
     ```bash
     ./build.sh
@@ -92,12 +92,12 @@ Wild-Sight-AI is a project designed for the Kria KR260 board that enables AI-dri
     root@xlnx-docker/#
     ```
 
-2. **Optional: Run an Empty ROS2 Docker Image**:
+2. **On First Run only: Build the ROS2 Packages**:
 
-    To test your own ROS2/GStreamer applications:
+    To build the ROS2 packages:
 
     ```bash
-    ./ros2_humble_run.sh
+    colcon build
     ```
 
 3. **Manage Docker Storage**:
@@ -115,10 +115,10 @@ Wild-Sight-AI is a project designed for the Kria KR260 board that enables AI-dri
     * Launch the application:
 
       ```bash
-      ./run_wild_sight_ai.sh
+      ./run_app.sh
       ```
 
-      You should see the camera’s captured images on the monitor connected to the board. When an animal is detected, a blue box will appear around it, tracking the animal as it moves. The camera rotator will also adjust to keep the detected animal centered on the screen.
+      You should see the camera’s captured images on the monitor connected to the board. When an animal is detected, a boundary box will appear around it, tracking the animal as it moves. The camera rotator will also adjust to keep the detected animal centered on the screen.
 
     * Press `Ctrl-C` to exit.
 
