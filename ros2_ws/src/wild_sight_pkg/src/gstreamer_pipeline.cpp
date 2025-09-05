@@ -66,15 +66,15 @@ public:
 
 	    "tee name=t ! "
 	       "queue max-size-buffers=2 leaky=0 ! "
-	       "vvas_xmultisrc kconfig=\"/opt/xilinx/kr260-wild-sight/share/vvas/detect/preprocess.json\" ! "
+	       "vvas_xmultisrc kconfig=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/preprocess.json\" ! "
 	       "video/x-raw,format=BGR,width=640,height=360 ! "
 	       "queue max-size-buffers=1 leaky=2 ! "
-               "vvas_xinfer infer-config=\"/opt/xilinx/kr260-wild-sight/share/vvas/detect/aiinference.json\" ! "
+               "vvas_xinfer infer-config=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/aiinference.json\" ! "
                "ima.sink_master vvas_xmetaaffixer name=ima ima.src_master ! fakesink "
 
             "t. ! "
 	       "queue max-size-buffers=1 leaky=2 ! ima.sink_slave_0 ima.src_slave_0 ! "
-	       "vvas_xmetaconvert config-location=\"/opt/xilinx/kr260-wild-sight/share/vvas/detect/metaconvert.json\" ! "
+	       "vvas_xmetaconvert config-location=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/metaconvert.json\" ! "
 	       "vvas_xoverlay name=draw ! queue max-size-buffers=2 leaky=2 ! "
                "kmssink driver-name=xlnx plane-id=39 sync=false fullscreen-overlay=true";
 

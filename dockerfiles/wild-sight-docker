@@ -105,7 +105,7 @@ if [ -f /root/ros2_ws/install/setup.bash ]; then
     echo "";
 else
     echo ""
-    echo "!!! ROS2 packets haven't been built yet. Type \"colcon build\" to build it first"
+    echo "!!! ROS2 packets haven't been built yet. Type \"colcon build\" to build them first"
     echo "";
 fi
 EOF

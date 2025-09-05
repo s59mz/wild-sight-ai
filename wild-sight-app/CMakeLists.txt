@@ -77,14 +77,6 @@ install(FILES
     RENAME      README_WILD_SIGHT.md
     )
 
-install(DIRECTORY
-    config/detect
-    DESTINATION ${INSTALL_PATH}/share/vvas/)
-
-install(DIRECTORY
-    models/kr260/megadetector
-    DESTINATION ${INSTALL_PATH}/share/vitis_ai_library/models/)
-
 set(VERSION "1.0.1")
 set(CPACK_PACKAGE_VERSION ${VERSION})
 set(CPACK_GENERATOR "RPM")
