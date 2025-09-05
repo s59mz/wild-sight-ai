@@ -29,4 +29,6 @@ docker run \
 -v /etc/vart.conf:/etc/vart.conf \
 -v /lib/firmware/xilinx:/lib/firmware/xilinx \
 -v $(pwd)/ros2_ws:/root/ros2_ws \
+-v $(pwd)/wild-sight-app/config/detect:/opt/xilinx/kr260-wild-sight/share/vvas/detect \
+-v $(pwd)/wild-sight-app/models/kr260/megadetector:/opt/xilinx/kr260-wild-sight/share/vitis_ai_library/models/megadetector \
 -it wild-sight-ai:1.0 bash
