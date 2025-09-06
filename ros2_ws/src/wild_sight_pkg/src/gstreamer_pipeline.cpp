@@ -159,16 +159,6 @@ public:
         object_detect_publisher_->publish(msg);
     }
 
-static void extract_bbox(VvasTreeNode *node, void *user) {
-       GstInferencePrediction* gpred = (GstInferencePrediction*) node->data;
-       VvasInferPrediction *child_pred = &gpred->prediction;
-       VvasBoundingBox * bbox = &child_pred->bbox;
-
-      g_printerr("C:w=%d,h=%d,x=%d,y=%d",bbox->width, bbox->height, bbox->x, bbox->y);
-    g_printerr("cN=%d", child_pred->node);
-
-}
-
     static void handle_inference_meta(GstInferenceMeta *inference_meta, GStreamerPipeline *gsnode) {
 	    
 	    // camera orientation struct to be shared between ros2 node and vvas library
@@ -185,7 +175,7 @@ static void extract_bbox(VvasTreeNode *node, void *user) {
 
 	        // ceck if detected any objects
             if (predictions) {
-                VvasInferPrediction *largest_child_pred = nullptr;
+                GstInferencePrediction *largest_child_pred = nullptr;
                 guint max_width = 0;
 
                 // get root element of linked list
@@ -194,41 +184,35 @@ static void extract_bbox(VvasTreeNode *node, void *user) {
                 // get parent bbox
 
                 VvasBoundingBox * parent_bbox = &prediction->bbox;
-                g_printerr("P:w=%d,h=%d,x=%d,y=%d",parent_bbox->width, parent_bbox->height, parent_bbox->x, parent_bbox->y);
-                g_printerr("pN=%d", prediction->node);
 
-                vvas_treenode_traverse_child(root, TRAVERSE_ALL, extract_bbox, nullptr);
-#if 0
 		        // walk through linked list of detected objects
                 if (root) {
                     for (VvasTreeNode* child = root->children; child != nullptr; child = child->next) {
 
-                        VvasInferPrediction *child_pred = (VvasInferPrediction *) child->data;
-                        VvasBoundingBox * bbox = &child_pred->bbox;
-                        g_printerr("C:w=%d,h=%d,x=%d,y=%d",bbox->width, bbox->height, bbox->x, bbox->y);
-                        g_printerr("cN=%d", child_pred->node);
+                        GstInferencePrediction* gpred = (GstInferencePrediction*) child->data;
+                        VvasInferPrediction *child_pred = &gpred->prediction; 
 
                         if (child_pred) {
                             // find the largest boundary box
                             if (child_pred->bbox.width > max_width) {
                                 max_width = child_pred->bbox.width;
-                                largest_child_pred = child_pred;
+                                largest_child_pred = gpred;
                             }
                         }
                     }
                 }
-#endif
+
 		        // check if the largest boundary box even exists
                 if (largest_child_pred) {
 		            // publish the largest one
-                    gsnode->publish_max_bounding_box(parent_bbox, &largest_child_pred->bbox);
-                    g_printerr("L:w=%d,h=%d,x=%d,y=%d",largest_child_pred->bbox.width, largest_child_pred->bbox.height, largest_child_pred->bbox.x, largest_child_pred->bbox.y);
+                    gsnode->publish_max_bounding_box(parent_bbox, &largest_child_pred->prediction.bbox);
+
 
                     // Also, attach the inclinometer shared data struct to the 
                     // Unused pointer of GstInferencePrediction struct
                     // So, the VVAS Draw Filter element can show camera orientation on the screen
 
-                    //largest_child_pred->reserved_1 = cam_orient;
+                    largest_child_pred->reserved_1 = cam_orient;
 
                     {   // update shared structure with inclinometer data with guard lock
                         std::lock_guard<std::mutex> lock(gsnode->mutex_);
