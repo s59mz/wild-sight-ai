@@ -38,6 +38,21 @@ RUN cd wild-sight-app ;\
 ## Building based on kria-runtime docker image
 FROM kria-image:3.5
 
+LABEL Description="Docker run time image for kria boards" Vendor="AMD-Xilinx"
+ARG BUILD_DATE
+ARG BUILD_VERSION
+LABEL org.label-schema.schema-version="1.0"
+
+# BUILD_DATE should be in "2016-04-12T23:20:50.52Z" format
+LABEL org.label-schema.build-date=$BUILD_DATE
+#BUILD_VERSION should match with source code tag.
+LABEL org.label-schema.version=$BUILD_VERSION
+
+COPY scripts/bashrc /etc/bash.bashrc
+RUN chmod a+rwx /etc/bash.bashrc
+RUN echo $BUILD_DATE > /etc/BUILD_DATE.txt
+ADD scripts/welcome.sh /etc/
+
 # set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
 
