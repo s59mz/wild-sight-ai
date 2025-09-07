@@ -604,7 +604,6 @@ extern "C"
       return 0;
     }
 
-
     if (infer_meta != NULL) {
 	    /* Print the entire prediction tree */
 	    pstr = gst_inference_prediction_to_string(infer_meta->prediction);
