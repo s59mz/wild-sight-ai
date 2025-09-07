@@ -76,9 +76,11 @@ public:
 
             "t. ! "
 	       "queue max-size-buffers=1 leaky=2 ! ima.sink_slave_0 ima.src_slave_0 ! "
-	       "vvas_xmetaconvert name=metaconvert config-location=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/metaconvert.json\" ! "
-	       "vvas_xoverlay ! queue max-size-buffers=2 leaky=2 ! "
-               "kmssink driver-name=xlnx plane-id=39 sync=false fullscreen-overlay=true";
+           "vvas_xfilter name=draw kernels-config=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/drawresult.json\" ! "
+           "kmssink driver-name=xlnx plane-id=39 sync=false fullscreen-overlay=true";
+
+	       //"vvas_xmetaconvert name=metaconvert config-location=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/metaconvert.json\" ! "
+	       //"vvas_xoverlay ! queue max-size-buffers=2 leaky=2 ! "
 
 	// Convert the pipeline string to const gchar*
     	const gchar *pipeline_cstr = pipeline_str.c_str();

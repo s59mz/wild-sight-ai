@@ -38,6 +38,7 @@ extern "C" {
 #include <gst/vvas/gstinferencemeta.h>
 #include <chrono>
 #include <iomanip>
+#include <vvas_utils/vvas_node.h>
 
 #include "vvas_airender.hpp"
 
@@ -150,21 +151,22 @@ get_label_text (VvasInferClassification * c, vvas_xoverlaypriv * kpriv,
   return true;
 }
 
-static bool
-overlay_node_foreach (const VvasTreeNode * node, void * kpriv_ptr)
+static void
+overlay_node_foreach (VvasTreeNode * node, void * kpriv_ptr)
 {
   vvas_xoverlaypriv *kpriv = (vvas_xoverlaypriv *) kpriv_ptr;
   struct overlayframe_info *frameinfo = &(kpriv->frameinfo);
   LOG_MESSAGE (LOG_LEVEL_DEBUG, "enter");
 
-  VvasList *classes;
-  VvasInferClassification *classification;
-  VvasInferPrediction *prediction = (VvasInferPrediction *) node->data;
+  VvasList *classes = nullptr;
+  VvasInferClassification *classification = nullptr;
+  GstInferencePrediction *gst_prediction = (GstInferencePrediction *) node->data;
+  VvasInferPrediction *prediction = &gst_prediction->prediction;
 
   /* On each children, iterate through the different associated classes */
   for (classes = prediction->classifications;
       classes; classes = classes->next) {
-    classification = (VvasInferClassification *) classes->data;
+    classification = &((GstInferenceClassification *) classes->data)->classification;
 
     int idx = vvas_classification_is_allowed ((char *)
         classification->class_label, kpriv);
@@ -184,7 +186,7 @@ overlay_node_foreach (const VvasTreeNode * node, void * kpriv_ptr)
     }
 
     char label_string[MAX_LABEL_LEN];
-    bool label_present;
+    bool label_present = false;
     Size textsize;
     label_present = get_label_text (classification, kpriv, label_string);
 
@@ -233,16 +235,16 @@ overlay_node_foreach (const VvasTreeNode * node, void * kpriv_ptr)
         rectangle (frameinfo->chromaImg, Point (new_xmin / 2,
               new_ymin / 2), Point (new_xmax / 2,
               new_ymax / 2), Scalar (uvScalar), kpriv->line_thickness, 1, 0);
-#if 0
+
 	//
 	// Show Camera Orientation - place a dynamic text on a screen
 	//
 	
 	// check if custom data struct exista
-	if (prediction && prediction->reserved_1) {
+	if (gst_prediction && gst_prediction->reserved_1) {
 	    std::stringstream ss_azimuth, ss_elevation;
 
-		CameraOrientation * cam_orient = reinterpret_cast<CameraOrientation *>(prediction->reserved_1);
+		CameraOrientation * cam_orient = reinterpret_cast<CameraOrientation *>(gst_prediction->reserved_1);
 
 		// Format azimuth
 		ss_azimuth << std::setw(6) << std::setfill(' ') << std::fixed << std::setprecision(2) << cam_orient->azimuth;
@@ -281,7 +283,6 @@ overlay_node_foreach (const VvasTreeNode * node, void * kpriv_ptr)
 		putText (frameinfo->chromaImg, camera_text, cv::Point (x / 2, y / 2), kpriv->font, 
 							 font_size / 2, Scalar (uvScalar), kpriv->line_thickness, 1);
 	   }
-#endif
 
       }
 
@@ -333,8 +334,6 @@ overlay_node_foreach (const VvasTreeNode * node, void * kpriv_ptr)
       }
     }
   }
-
-  return FALSE;
 }
 
 static void
@@ -614,13 +613,11 @@ extern "C"
 		free(pstr);
 	    }
 
-	    vvas_treenode_traverse(
+        vvas_treenode_traverse_child(
 		infer_meta->prediction->prediction.node,   // VvasTreeNode*
-		PRE_ORDER,                                 // like G_PRE_ORDER
 		TRAVERSE_ALL,                              // all nodes to be traversed flag
-		-1,                                        // unlimited depth
 		overlay_node_foreach,                      // our VVAS callback
-		(void *) kpriv                                      // user data
+		(void *) kpriv                             // user data
 	    );
     }
 
