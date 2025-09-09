@@ -36,6 +36,18 @@
 #include "wild_sight_interfaces/msg/camera_orientation.hpp"
 #include "wild_sight_pkg/cameradata.h"
 
+// tensor debug
+#include <vart/runner.hpp>
+#include <vart/tensor_buffer.hpp>
+#include <xir/tensor/tensor.hpp>
+#include <xir/graph/graph.hpp>
+
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "dump_tensorbuf.cpp"
 
 // ROS2 Node Class
 class GStreamerPipeline : public rclcpp::Node {
@@ -80,7 +92,7 @@ public:
 	       "vvas_xoverlay ! queue max-size-buffers=2 leaky=2 ! "
            "kmssink driver-name=xlnx plane-id=39 sync=false fullscreen-overlay=true";
 
-           //pipeline_str = "videotestsrc is-live=true ! video/x-raw,format=RGB,width=640,height=640,framerate=30/1 ! queue max-size-buffers=8 leaky=downstream ! vvas_xinfer infer-config=/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/aiinference.json name=infer batch-timeout=15 ! fakesink";
+           pipeline_str = "videotestsrc is-live=true ! video/x-raw,format=RGB,width=640,height=640,framerate=30/1 ! queue max-size-buffers=8 leaky=downstream ! vvas_xinfer infer-config=/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/aiinference.json name=infer process-mode=2 batch-timeout=10 batch-wait-timeout-ms=10 ! queue ! fakesink sync=false";
 
 	       //"vvas_xmetaconvert name=metaconvert config-location=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/metaconvert.json\" ! "
 	       //"vvas_xoverlay ! queue max-size-buffers=2 leaky=2 ! "
@@ -88,7 +100,7 @@ public:
            //"vvas_xfilter name=draw kernels-config=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/drawresult.json\" ! "
            //"queue max-size-buffers=2 leaky=2 ! "
 
-	// Convert the pipeline string to const gchar*
+	    // Convert the pipeline string to const gchar*
     	const gchar *pipeline_cstr = pipeline_str.c_str();
 
     	// Create the GStreamer pipeline
@@ -138,11 +150,11 @@ public:
     }
 
     void publish_max_bounding_box(const VvasBoundingBox *res_bbox, const VvasBoundingBox *obj_bbox) {
-        static unsigned int frame_count = 0;
+        //static unsigned int frame_count = 0;
 
         // Handle only each N-th frame to reduce latency 
-        if ((frame_count++) % 2)
-            return;
+        //if ((frame_count++) % 2)
+        //    return;
 
         auto msg = wild_sight_interfaces::msg::ObjectDetect();
 
@@ -193,13 +205,6 @@ public:
                 // get parent bbox
                 VvasBoundingBox * parent_bbox = &prediction->bbox;
 
-                // get tensor buffer from root node
-                TensorBuf *tb = prediction->tb;
-                
-                if (tb) {
-                    g_printerr("TR:s=%d,h=%d,w=%d,fmt=%d\n",tb->size, tb->height, tb->width, tb->fmt);
-                }
-
 		        // walk through linked list of detected objects
                 if (root) {
                     for (VvasTreeNode* child = root->children; child != nullptr; child = child->next) {
@@ -207,17 +212,13 @@ public:
                         GstInferencePrediction* gpred = (GstInferencePrediction*) child->data;
                         VvasInferPrediction *child_pred = &gpred->prediction; 
                         
-                        tb = child_pred->tb;
-
                         if (child_pred) {
+                            // get tensor buffer from child node
+                            TensorBuf *tb = child_pred->tb;
                             if (tb) {
-                                g_printerr("TC:s=%d,h=%d,w=%d,fmt=%d\n",tb->size, tb->height, tb->width, tb->fmt);
 
-                                uint8_t *byt = (uint8_t*) tb->ptr[0];
-                                for (int i = 0; i<128; i++) {
-                                    int val = (int) byt[i];
-                                    g_printerr("%02x ", val);
-                                }
+                                g_printerr("Raw Tensor:s=%d,h=%d,w=%d\n",(int)tb->size, (int)tb->height, (int)tb->width);
+                                dump_tensorbuf(tb);
                             }
                             else {
                                 // find the largest boundary box

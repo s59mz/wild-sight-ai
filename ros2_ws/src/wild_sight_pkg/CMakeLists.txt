@@ -39,7 +39,8 @@ ament_target_dependencies(gstreamer_pipeline wild_sight_interfaces rclcpp)
 target_link_libraries(gstreamer_pipeline 
     ${GST_LIBRARIES}
     libgstvvasinfermeta-3.0.so
-    libvvascore_utils-1.0.so)
+    libvvascore_utils-1.0.so
+)
 
 install(TARGETS
         gstreamer_pipeline
