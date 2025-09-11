@@ -1,6 +1,8 @@
 {
+  "xclbin-location": "/lib/firmware/xilinx/kr260-wild-sight/kr260-wild-sight.xclbin",
+  "vvas-library-repo": "/usr/lib/aarch64-linux-gnu",
   "element-mode": "inplace",
-  "inference-max-queue": 4,
+  "inference-max-queue": 8,
   "kernel": {
     "library-name": "libvvascore_dpuinfer-1.0.so",
     "config": {
@@ -9,9 +11,16 @@
       "model-path": "/opt/xilinx/kr260-wild-sight/share/vitis_ai_library/models/",
       "model-format": "RGB",
       "vitis-ai-preprocess": false,
-      "performance-test": true,
+
       "batch-size": 1,
-      "batch-wait-timeout-ms": 10
+
+      "low-latency": true,    
+      "batch-timeout": 1,      
+      "batch-wait-timeout": 1000,
+      "batch-wait-timeout-ms": 1,
+      "inference-max-queue": 8,
+      "performance-test": true,
+      "debug-level": 2
     }
   }
 }

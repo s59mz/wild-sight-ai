@@ -84,7 +84,7 @@ public:
 	       "video/x-raw,format=RGB,width=640,height=640 ! "
 	       "queue max-size-buffers=1 leaky=2 ! "
                "vvas_xinfer name=infer infer-config=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/aiinference.json\" ! "
-               "ima.sink_master vvas_xmetaaffixer timeout=50 sync=false name=ima ima.src_master ! fakesink "
+               "ima.sink_master vvas_xmetaaffixer timeout=50 sync=true name=ima ima.src_master ! fakesink "
 
          "t. ! "
 	       "queue max-size-buffers=1 leaky=2 ! ima.sink_slave_0 ima.src_slave_0 ! "
@@ -92,7 +92,7 @@ public:
 	       "vvas_xoverlay ! queue max-size-buffers=2 leaky=2 ! "
            "kmssink driver-name=xlnx plane-id=39 sync=false fullscreen-overlay=true";
 
-           pipeline_str = "videotestsrc is-live=true ! video/x-raw,format=RGB,width=640,height=640,framerate=30/1 ! queue max-size-buffers=8 leaky=downstream ! vvas_xinfer infer-config=/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/aiinference.json name=infer process-mode=2 batch-timeout=10 batch-wait-timeout-ms=10 ! queue ! fakesink sync=false";
+           //pipeline_str = "videotestsrc is-live=true ! video/x-raw,format=RGB,width=640,height=640,framerate=30/1 ! queue max-size-buffers=8 leaky=downstream ! vvas_xinfer infer-config=/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/aiinference.json name=infer process-mode=2 batch-timeout=10 batch-wait-timeout-ms=10 ! queue ! fakesink sync=false";
 
 	       //"vvas_xmetaconvert name=metaconvert config-location=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/metaconvert.json\" ! "
 	       //"vvas_xoverlay ! queue max-size-buffers=2 leaky=2 ! "
