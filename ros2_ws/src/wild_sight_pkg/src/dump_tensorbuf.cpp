@@ -4,7 +4,9 @@
 #include <cstring>
 
 // tb comes from child_pred->tb (VvasInferPrediction*)
-static inline void dump_tensorbuf(const TensorBuf* tb) {
+static inline void dump_tensorbuf(const TensorBuf* tb, GstInferencePrediction **ret_root_pred) {
+    *ret_root_pred = nullptr;   // not implemented yet
+
     if (!tb) { g_printerr("TensorBuf is null\n"); return; }
 
     // Each entry in tb->ptr[] is a vart::TensorBuffer*
