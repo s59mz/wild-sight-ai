@@ -3,8 +3,6 @@
         print(self.anchors);
         print("Stride: ");
         print(self.stride);
-        print("grid: ");
-        print(self.grid);
         z = []
         for i in range(self.nl):
             x[i] = self.m[i](x[i])
@@ -54,8 +52,6 @@ tensor([[[ 2.37500,  3.37500],
          [14.45312, 12.37500]]])
 Stride: 
 tensor([ 8., 16., 32., 64.])
-grid: 
-[tensor([0.]), tensor([0.]), tensor([0.]), tensor([0.])]
 
 
 ---
