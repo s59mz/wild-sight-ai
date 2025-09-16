@@ -19,8 +19,8 @@ from PIL import Image, ImageOps
 
 from pytorch_nndct.apis import torch_quantizer
 
-# ===== YOLOv5 imports (repo must be next to this script as ../yolov5) =====
-yolov5_root = Path('../yolov5')
+# ===== YOLOv5 imports (repo must be next to this script as ./yolov5) =====
+yolov5_root = Path('./yolov5')
 sys.path.insert(0, str(yolov5_root.resolve()))
 from models.common import DetectMultiBackend
 
