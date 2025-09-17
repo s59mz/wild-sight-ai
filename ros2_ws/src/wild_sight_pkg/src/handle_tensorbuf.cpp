@@ -144,10 +144,10 @@ static inline void handle_tensorbuf(const TensorBuf* tb,
 
   if (!tb) { g_printerr("TensorBuf is null\n"); return; }
 
-  // for debug only
-  num_heads = 1;
-
   const int num_heads = std::min(tb->size, kNumHeads);
+  // for debug only
+  // num_heads = 1;
+
   for (int i = 0; i < num_heads; ++i) {
     auto* vtb = static_cast<vart::TensorBuffer*>(tb->ptr[i]);
     if (!vtb) { g_printerr("ptr[%d] is null\n", i); continue; }

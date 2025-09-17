@@ -75,7 +75,7 @@ public:
         // Build the pipeline string
 	std::string pipeline_str = "rtspsrc location=" + camera_url_ + " ! "
         "rtph265depay ! h265parse ! omxh265dec ! "
-        "videoconvert ! video/x-raw, format=NV12 ! "
+        "videoconvert ! video/x-raw,format=NV12,width=1920,height=1080 ! "
 	    "videorate ! video/x-raw, framerate=30/1 ! "
 
 	    "tee name=t ! "
@@ -84,7 +84,7 @@ public:
 	       "video/x-raw,format=RGB,width=640,height=640 ! "
 	       "queue max-size-buffers=1 leaky=2 ! "
                "vvas_xinfer name=infer infer-config=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/aiinference.json\" ! "
-               "ima.sink_master vvas_xmetaaffixer name=ima ima.src_master ! fakesink "
+               "ima.sink_master vvas_xmetaaffixer timeout=5 sync=false name=ima ima.src_master ! fakesink "
 
          "t. ! "
 	       "queue max-size-buffers=1 leaky=2 ! ima.sink_slave_0 ima.src_slave_0 ! "
@@ -97,6 +97,7 @@ public:
 	       //"vvas_xmetaconvert name=metaconvert config-location=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/metaconvert.json\" ! "
 	       //"vvas_xoverlay ! queue max-size-buffers=2 leaky=2 ! "
 
+           //"ima.sink_master vvas_xmetaaffixer name=ima timeout=5 sync=false ima.src_master ! fakesink "
            //"vvas_xfilter name=draw kernels-config=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/drawresult.json\" ! "
            //"queue max-size-buffers=2 leaky=2 ! "
 
