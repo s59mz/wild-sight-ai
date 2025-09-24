@@ -1,3 +1,52 @@
+Anchor_grid: 
+tensor([[[ 2.37500,  3.37500],
+         [ 5.50000,  5.00000],
+         [ 4.75000, 11.75000]],
+
+        [[ 6.00000,  4.25000],
+         [ 5.37500,  9.50000],
+         [11.25000,  8.56250]],
+
+        [[ 4.37500,  9.40625],
+         [ 9.46875,  8.25000],
+         [ 7.43750, 16.93750]],
+
+        [[ 6.81250,  9.60938],
+         [11.54688,  5.93750],
+         [14.45312, 12.37500]]])
+
+Stride: 
+tensor([ 8., 16., 32., 64.])
+
+# these anchor values should be multiplied by Strides for decoding raw tensor outputs
+
+---
+
+# decoding examples by using these anchors
+# image size: 448x256 px
+
+// P3 / 56x32 / s=8
+Anchor a0[3] = { {19.f,27.f}, {44.f,40.f}, {38.f,94.f} };
+decode_head_nhwc(f, i, H, W, frame_w, frame_h, dets)
+decode_head_nhwc(f0, 0, 32, 56, 448, 256, dets)
+
+// P4 / 28x16 / s=16
+Anchor a1[3] = { {96.f,68.f}, {86.f,152.f}, {180.f,137.f} };
+decode_head_nhwc(f1, 1, 16, 28, 448, 256, dets)
+
+// P5 / 14x8 / s=32
+Anchor a2[3] = { {140.f,301.f}, {303.f,264.f}, {238.f,542.f} };
+decode_head_nhwc(f2, 2, 8, 14, 448, 256, dets)
+
+// P6 / 7x4 / s=64
+Anchor a3[3] = { {436.f,615.f}, {739.f,380.f}, {925.f,792.f} };
+decode_head_nhwc(f3, 3, 4, 7, 448, 256, dets)
+
+
+---
+
+
+   # modified Detect.forward() function from yolov5/models/yolo.py for getting Anchors per pixels
    def forward(self, x):
         print("Anchor_grid: ");
         print(self.anchors);
@@ -9,6 +58,7 @@
             z.append(x[i])
         return tuple(z)
 
+   # original Detect.forward() function from yolov5/models/yolo.py for getting Anchors per pixels
    def _forward(self, x):
         z = []  # inference output
         for i in range(self.nl):
@@ -32,45 +82,4 @@
                 z.append(y.view(bs, -1, self.no))
 
         return x if self.training else (torch.cat(z, 1),) if self.export else (torch.cat(z, 1), x)
-
-
-Anchor_grid: 
-tensor([[[ 2.37500,  3.37500],
-         [ 5.50000,  5.00000],
-         [ 4.75000, 11.75000]],
-
-        [[ 6.00000,  4.25000],
-         [ 5.37500,  9.50000],
-         [11.25000,  8.56250]],
-
-        [[ 4.37500,  9.40625],
-         [ 9.46875,  8.25000],
-         [ 7.43750, 16.93750]],
-
-        [[ 6.81250,  9.60938],
-         [11.54688,  5.93750],
-         [14.45312, 12.37500]]])
-Stride: 
-tensor([ 8., 16., 32., 64.])
-
-
----
-// P3 / 80x80 / s=8
-Anchor a0[3] = { {19.f,27.f}, {44.f,40.f}, {38.f,94.f} };
-decode_yolov5_head_nhwc(t0, 80, 80, 640, 640, a0, 8, 0.25f, /*nc=*/3, boxes);
-
-// P4 / 40x40 / s=16
-Anchor a1[3] = { {96.f,68.f}, {86.f,152.f}, {180.f,137.f} };
-decode_yolov5_head_nhwc(t1, 40, 40, 640, 640, a1, 16, 0.25f, 3, boxes);
-
-// P5 / 20x20 / s=32
-Anchor a2[3] = { {140.f,301.f}, {303.f,264.f}, {238.f,542.f} };
-decode_yolov5_head_nhwc(t2, 20, 20, 640, 640, a2, 32, 0.25f, 3, boxes);
-
-// P6 / 10x10 / s=64
-Anchor a3[3] = { {436.f,615.f}, {739.f,380.f}, {925.f,792.f} };
-decode_yolov5_head_nhwc(t3, 10, 10, 640, 640, a3, 64, 0.25f, 3, boxes);
-
-
-
 

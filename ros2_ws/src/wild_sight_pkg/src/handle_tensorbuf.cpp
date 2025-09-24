@@ -1,3 +1,23 @@
+/*
+# Wild-Sight-AI
+# Smart Following Camera with Animal Detection
+#   for Kria KR260 Board
+#
+# Created by: Matjaz Zibert S59MZ - September 2025
+#
+# YOLOv5 P6 Decoder
+#   - Input: 4 lanes of raw tensors from DPU
+#   - Outout: pointer to populated GstInferencePrediction datastructure
+#
+#   - This function decodes raw tensors and calculates
+#     boundary boxes of detected 3 classes: Animal, Person, Vehicle
+#     Then populates child nodes of the VvasInferPrediction data structures
+#
+# Hackster.io Project link:
+#     https://www.hackster.io/matjaz4/wildsight-ai-real-time-human-wildlife-conflict-detection-ff65fa
+*/
+
+
 /* -----------------------------------------------------------
  * Minimal helpers (keep or remove if you already have them)
  * -----------------------------------------------------------*/
@@ -44,26 +64,51 @@ static inline float sigmoid(float x) {
 static constexpr int   kNumHeads    = 4;
 static constexpr int   kNumAnchors  = 3;
 static constexpr int   kNumClasses  = 3;
-static constexpr float kConfThresh  = 0.25f;    // tweak as needed
-static constexpr float kNMSThresh   = 0.45f;    // tweak as needed
+static constexpr float kConfThresh  = 0.85;    // tweak as needed
+static constexpr float kNMSThresh   = 0.85f;    // tweak as needed
 
 static const float kStrides[kNumHeads] = { 8.f, 16.f, 32.f, 64.f };
 
+#if 0
+tensor([[[ 2.37500,  3.37500],
+         [ 5.50000,  5.00000],
+         [ 4.75000, 11.75000]],
+
+        [[ 6.00000,  4.25000],
+         [ 5.37500,  9.50000],
+         [11.25000,  8.56250]],
+
+        [[ 4.37500,  9.40625],
+         [ 9.46875,  8.25000],
+         [ 7.43750, 16.93750]],
+
+        [[ 6.81250,  9.60938],
+         [11.54688,  5.93750],
+         [14.45312, 12.37500]]])
+#endif
 // [head][anchor][2] = (aw, ah) in PIXELS
 static const float kAnchors[kNumHeads][kNumAnchors][2] = {
-  // P3 / 80x80 / s=8
+  // P3 / 56x32 / s=8
   { { 19.0f, 27.0f }, { 44.0f, 40.0f }, { 38.0f, 94.0f } },
-  // P4 / 40x40 / s=16
+  // P4 / 28x16 / s=16
   { { 96.0f, 68.0f }, { 86.0f,152.0f }, {180.0f,137.0f } },
-  // P5 / 20x20 / s=32
+  // P5 / 14x8 / s=32
   { {140.0f,301.0f }, {303.0f,264.0f }, {238.0f,542.0f } },
-  // P6 / 10x10 / s=64
+  // P6 / 7x4 / s=64
   { {436.0f,615.0f }, {739.0f,380.0f }, {925.0f,792.0f } }
 };
 
-// Expected spatial sizes per head (matching above order)
-static const int kHeadH[kNumHeads] = {80, 40, 20, 10};
-static const int kHeadW[kNumHeads] = {80, 40, 20, 10};
+// Expected spatial sizes per head for 576x320 (matching above order)
+// static const int kHeadH[kNumHeads] = {40, 20, 10,  5};
+// static const int kHeadW[kNumHeads] = {72, 36, 18,  9};
+
+// Expected spatial sizes per head for 448x256 (matching above order)
+static const int kHeadH[kNumHeads] = {32, 16,  8,  4};
+static const int kHeadW[kNumHeads] = {56, 28, 14,  7};
+
+// Expected spatial sizes per head for 320x256 (matching above order)
+// static const int kHeadH[kNumHeads] = {32, 16,  8,  4};
+// static const int kHeadW[kNumHeads] = {40, 20, 10,  5};
 
 /* -----------------------------------------------------------
  * Decode a single NHWC head (H x W x 24 floats)
@@ -75,6 +120,7 @@ static inline void decode_head_nhwc(const float* f,
                                     int frame_w, int frame_h,
                                     std::vector<Det>& dets)
 {
+  //  g_printerr("idx=%d, H=%d, W=%d, fw=%d, fh=%d\n", head_idx, H, W, frame_w, frame_h);
   const float stride = kStrides[head_idx];
   const int   C      = kNumAnchors * (5 + kNumClasses); // 3*(5+3)=24
   const int   step_a = (5 + kNumClasses);               // 8
@@ -87,17 +133,26 @@ static inline void decode_head_nhwc(const float* f,
       const int base = y * step_h + x * step_w;
       for (int a = 0; a < kNumAnchors; ++a) {
         const int off = base + a * step_a * step_c; // anchor offset
+        float cc[3];
+
         const float tx = f[off + 0];
         const float ty = f[off + 1];
         const float tw = f[off + 2];
         const float th = f[off + 3];
+
         const float to = f[off + 4];
 
+        cc[0] = f[off + 5];
+        cc[1] = f[off + 6];
+        cc[2] = f[off + 7];
+
+
+
         // class logits (kNumClasses)
-        float best_logit = f[off + 5];
+        float best_logit = cc[0];
         int   best_id    = 0;
         for (int c = 1; c < kNumClasses; ++c) {
-          float v = f[off + 5 + c];
+          float v = cc[c];
           if (v > best_logit) { best_logit = v; best_id = c; }
         }
 
@@ -106,8 +161,8 @@ static inline void decode_head_nhwc(const float* f,
         if (prob < kConfThresh) continue;
 
         // YOLOv5 decode
-        const float cx = (sigmoid(tx) * 2.f + float(x)) * stride;
-        const float cy = (sigmoid(ty) * 2.f + float(y)) * stride;
+        const float cx = (sigmoid(tx) * 2.f - 0.5f + float(x)) * stride;
+        const float cy = (sigmoid(ty) * 2.f - 0.5f + float(y)) * stride;
         const float aw = kAnchors[head_idx][a][0];
         const float ah = kAnchors[head_idx][a][1];
         const float bw = std::pow(sigmoid(tw) * 2.f, 2.f) * aw;
@@ -144,9 +199,8 @@ static inline void handle_tensorbuf(const TensorBuf* tb,
 
   if (!tb) { g_printerr("TensorBuf is null\n"); return; }
 
-  const int num_heads = std::min(tb->size, kNumHeads);
-  // for debug only
-  // num_heads = 1;
+  int num_heads = std::min(tb->size, kNumHeads);
+  num_heads = 2;   // only first two lanes have sense for this resolution
 
   for (int i = 0; i < num_heads; ++i) {
     auto* vtb = static_cast<vart::TensorBuffer*>(tb->ptr[i]);
@@ -169,6 +223,26 @@ static inline void handle_tensorbuf(const TensorBuf* tb,
     }
 
     const float* f = reinterpret_cast<const float*>(base);
+
+#if 0
+    // debug print raw tensor
+    g_printerr("Lane=%d, nbytes=%d\n", i, (int) nbytes);
+
+    for (int j=0; j<128; j++) {
+        g_printerr("%08X ", (int) base[j]);
+    }
+    g_printerr("\n");
+
+    if (i==3){
+      g_printerr("Head %d: H=%d W=%d C=%d -> %zu bytes, buffer=%zu bytes\n",
+                 i, H, W, C, expected, nbytes);
+      for (int j=0; j<nbytes/4; j++) {
+        g_printerr("%.2f ", f[j]);
+      }
+      g_printerr("\n");
+    }
+#endif
+
     decode_head_nhwc(f, i, H, W, frame_w, frame_h, dets);
   }
 
@@ -190,6 +264,8 @@ static inline void handle_tensorbuf(const TensorBuf* tb,
   root->bbox.width = frame_w; root->bbox.height = frame_h;
 
   for (const auto& d : kept) {
+    if (d.cls != 0) continue;  // show animals only for debugg
+
     GstInferencePrediction* gchild = gst_inference_prediction_new();
     VvasInferPrediction *child = &gchild->prediction;
 
@@ -198,7 +274,7 @@ static inline void handle_tensorbuf(const TensorBuf* tb,
     child->bbox.width  = (gint)std::round(d.x2 - d.x1);
     child->bbox.height = (gint)std::round(d.y2 - d.y1);
 
-    g_printerr("x=%d, y=%d, w=%d, h=%d, cls=%d, scr=%f\n", child->bbox.x, child->bbox.y, child->bbox.width, child->bbox.height, d.cls, d.score);
+    // g_printerr("x=%d, y=%d, w=%d, h=%d, cls=%d, scr=%f\n", child->bbox.x, child->bbox.y, child->bbox.width, child->bbox.height, d.cls, d.score);
 
     GstInferenceClassification *gcls = gst_inference_classification_new();
     VvasInferClassification *cls = &gcls->classification;

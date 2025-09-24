@@ -52,17 +52,18 @@ class Detect(nn.Module):
         self.inplace = inplace  # use in-place ops (e.g. slice assignment)
 
     def forward(self, x):
-        print("Anchor_grid: ");
-        print(self.anchors);
-        print("Stride: ");
-        print(self.stride);
+        # print("Anchor_grid: ");
+        # print(self.anchors);
+        # print("Stride: ");
+        # print(self.stride);
         z = []
         for i in range(self.nl):
             x[i] = self.m[i](x[i])
             z.append(x[i])
         return tuple(z)
 
-    def _forward(self, x):
+
+    def __forward(self, x):
         z = []  # inference output
         for i in range(self.nl):
             x[i] = self.m[i](x[i])  # conv

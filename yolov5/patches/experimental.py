@@ -52,8 +52,7 @@ class MixConv2d(nn.Module):
         self.m = nn.ModuleList([
             nn.Conv2d(c1, int(c_), k, s, k // 2, groups=math.gcd(c1, int(c_)), bias=False) for k, c_ in zip(k, c_)])
         self.bn = nn.BatchNorm2d(c2)
-        #self.act = nn.SiLU()
-        self.act = nn.LeakyReLU(0.1015625, inplace=True)
+        self.act = nn.SiLU()
 
     def forward(self, x):
         return self.act(self.bn(torch.cat([m(x) for m in self.m], 1)))
@@ -72,32 +71,29 @@ class Ensemble(nn.ModuleList):
         return y, None  # inference, train output
 
 
-import torch.nn as nn
-
-def _replace_silu_with_leakyrelu(module: nn.Module, negative_slope=0.1015625, inplace=True):
-    """Recursively replace all nn.SiLU with nn.LeakyReLU."""
+# patch to be DPU friendly
+def _replace_silu_with_hardswish(module: nn.Module, inplace=True):
+    """Recursively replace all nn.SiLU with nn.Hardswish activation."""
     for name, child in module.named_children():
         if isinstance(child, nn.SiLU):
-            setattr(module, name, nn.LeakyReLU(negative_slope=negative_slope, inplace=inplace))
+            setattr(module, name, nn.Hardswish(inplace=inplace))
         else:
-            _replace_silu_with_leakyrelu(child, negative_slope, inplace)
+            _replace_silu_with_hardswish(child, inplace)
     return module
 
 def attempt_load(weights, device=None, inplace=True, fuse=True):
     # Loads an ensemble of models weights=[a,b,c] or a single model weights=[a] or weights=a
     from models.yolo import Detect, Model
-    import torch
-    import torch.nn as nn
 
     model = Ensemble()
     for w in weights if isinstance(weights, list) else [weights]:
         ckpt = torch.load(attempt_download(w), map_location='cpu')
         m = (ckpt.get('ema') or ckpt['model']).to(device).float().eval()
 
-        # 1) Replace SiLU→LeakyReLU on the unfused graph
-        _replace_silu_with_leakyrelu(m, negative_slope=0.1015625, inplace=True)
+        # 1) Replace SiLU→Hardswish on the unfused graph
+        _replace_silu_with_hardswish(m, inplace=True)
 
-        # 2) (optional) fuse Conv+BN now that activations are LeakyReLU (YOLOv5 fuse only fuses Conv+BN)
+        # 2) (optional) fuse Conv+BN now that activations are Hardswish (YOLOv5 fuse only fuses Conv+BN)
         m = m.fuse().eval() if fuse else m
 
         model.append(m)

@@ -19,7 +19,7 @@
 # Design based on Kria KV260 Smartcam Demo App by AMD
 #
 # Hackster.io Project link:
-#     https://www.hackster.io/matjaz4
+#     https://www.hackster.io/matjaz4/wildsight-ai-real-time-human-wildlife-conflict-detection-ff65fa
 */
 
 
@@ -77,29 +77,19 @@ public:
         "rtph265depay ! h265parse ! omxh265dec ! "
         "videoconvert ! video/x-raw,format=NV12,width=1920,height=1080 ! "
 	    "videorate ! video/x-raw, framerate=30/1 ! "
+	    "queue max-size-buffers=1 leaky=2 ! "
 
 	    "tee name=t ! "
-	       "queue max-size-buffers=2 leaky=0 ! "
 	       "vvas_xmultisrc kconfig=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/preprocess.json\" ! "
-	       "video/x-raw,format=RGB,width=640,height=640 ! "
-	       "queue max-size-buffers=1 leaky=2 ! "
-               "vvas_xinfer name=infer infer-config=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/aiinference.json\" ! "
-               "ima.sink_master vvas_xmetaaffixer timeout=5 sync=false name=ima ima.src_master ! fakesink "
+	       "video/x-raw,format=RGB,width=448,height=256 ! "
+           "vvas_xinfer name=infer infer-config=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/aiinference.json\" ! "
+           "ima.sink_master vvas_xmetaaffixer timeout=2000 sync=true name=ima ima.src_master ! fakesink "
 
          "t. ! "
-	       "queue max-size-buffers=1 leaky=2 ! ima.sink_slave_0 ima.src_slave_0 ! "
+	       "ima.sink_slave_0 ima.src_slave_0 ! "
            "vvas_xfilter name=draw kernels-config=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/drawresult.json\" ! "
-           "queue max-size-buffers=2 leaky=2 ! "
+           "queue max-size-buffers=1 leaky=2 ! "
            "kmssink driver-name=xlnx plane-id=39 sync=false fullscreen-overlay=true";
-
-           //pipeline_str = "videotestsrc is-live=true ! video/x-raw,format=RGB,width=640,height=640,framerate=30/1 ! queue max-size-buffers=8 leaky=downstream ! vvas_xinfer infer-config=/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/aiinference.json name=infer process-mode=2 batch-timeout=10 batch-wait-timeout-ms=10 ! queue ! fakesink sync=false";
-
-	       //"vvas_xmetaconvert name=metaconvert config-location=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/metaconvert.json\" ! "
-	       //"vvas_xoverlay ! queue max-size-buffers=2 leaky=2 ! "
-
-           //"ima.sink_master vvas_xmetaaffixer name=ima timeout=5 sync=false ima.src_master ! fakesink "
-           //"vvas_xfilter name=draw kernels-config=\"/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect/drawresult.json\" ! "
-           //"queue max-size-buffers=2 leaky=2 ! "
 
 	    // Convert the pipeline string to const gchar*
     	const gchar *pipeline_cstr = pipeline_str.c_str();
@@ -181,7 +171,6 @@ public:
     }
 
     static void handle_inference_meta(GstInferenceMeta *inference_meta, GStreamerPipeline *gsnode) {
-	   g_printerr("enter\n"); 
 	    // camera orientation struct to be shared between ros2 node and vvas library
         static CameraOrientation *cam_orient = nullptr;
 
@@ -218,13 +207,11 @@ public:
                             TensorBuf *tb = child_pred->tb;
                             if (tb) {
 
-                                g_printerr("Raw Tensor:s=%d,h=%d,w=%d\n",(int)tb->size, (int)tb->height, (int)tb->width);
                                 GstInferencePrediction *root_pred = nullptr;
                                 handle_tensorbuf(tb, &root_pred, parent_bbox->width, parent_bbox->height);
                                 if (root_pred) {
                                     gst_inference_prediction_unref(inference_meta->prediction);
                                     inference_meta->prediction = root_pred;
-                                    g_printerr("Attached\n");
                                 }
                             }
                             else {
@@ -287,7 +274,7 @@ public:
         if (meta) {
 	        // found one, let's handle it
             GstInferenceMeta *infer_meta = reinterpret_cast<GstInferenceMeta *>(meta);
-            g_printerr("cnt=%d\n", cnt);
+            // g_printerr("cnt=%d\n", cnt);
             handle_inference_meta(infer_meta, node);
         } else {
 	        // Needed for counting empty frames for timeout

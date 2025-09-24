@@ -1,9 +1,25 @@
 #!/usr/bin/env python3
+#
+# Wild-Sight-AI
+# Smart Following Camera with Animal Detection
+#   for Kria KR260 Board
+#
+# Created by: Matjaz Zibert S59MZ - September 2025
+#
 # yolo5s_quant.py
 # Quantize YOLOv5-style detector (raw tensor heads) with Vitis-AI torch quantizer.
-# Usage (same as before):
+#
+# Hackster.io Project link:
+#     https://www.hackster.io/matjaz4/wildsight-ai-real-time-human-wildlife-conflict-detection-ff65fa
+#
+# Prerequisite:
+#   pip install seaborn
+#
+# Usage :
 #   python yolo5s_quant.py --quant_mode calib --data_dir calibration_images --model_dir ./models/md_v5a.0.1.pt --subset_len 12
 #   python yolo5s_quant.py --quant_mode test  --data_dir calibration_images --model_dir ./models/md_v5a.0.1.pt --subset_len 1 --batch_size=1 --deploy
+#   vai_c_xir -x quantize_result/Model_int.xmodel -a arch.json -o dpu_model -n megadetector
+#
 
 import os
 import sys
@@ -19,22 +35,30 @@ from PIL import Image, ImageOps
 
 from pytorch_nndct.apis import torch_quantizer
 
-# ===== YOLOv5 imports (repo must be next to this script as ./yolov5) =====
-yolov5_root = Path('./yolov5')
+# ===== YOLOv5 imports (repo must be next to this script as ../yolov5) =====
+yolov5_root = Path('../yolov5')
 sys.path.insert(0, str(yolov5_root.resolve()))
 from models.common import DetectMultiBackend
+
+# set input image size - should be Nx64 to be YOLOv5 P6 compatible (and close to 16:9)
+# NET_W, NET_H = 320, 256
+NET_W, NET_H = 448, 256
+# NET_W, NET_H = 576, 320
+# NET_W, NET_H = 704, 384
+# NET_W, NET_H = 1024, 576
+# NET_W, NET_H = 640, 512
 
 # -------------------------
 # Letterbox (PIL-only)
 # -------------------------
-def letterbox_pil(im: Image.Image, new_shape: int = 640, color=(114, 114, 114)) -> Image.Image:
+def letterbox_pil(im: Image.Image, new_shape_w: int = NET_W, new_shape_h: int = NET_H, color=(114, 114, 114)) -> Image.Image:
     """Resize image to new_shape with aspect ratio kept and padding added (like YOLOv5)."""
     w0, h0 = im.size
-    r = min(new_shape / w0, new_shape / h0)
+    r = min(new_shape_w / w0, new_shape_h / h0)
     new_unpad = (int(round(w0 * r)), int(round(h0 * r)))  # (nw, nh)
     im_resized = im.resize(new_unpad, Image.BILINEAR)
-    dw = new_shape - new_unpad[0]
-    dh = new_shape - new_unpad[1]
+    dw = new_shape_w - new_unpad[0]
+    dh = new_shape_h - new_unpad[1]
     left = dw // 2
     top = dh // 2
     right = dw - left
@@ -46,7 +70,7 @@ def letterbox_pil(im: Image.Image, new_shape: int = 640, color=(114, 114, 114)) 
 # Calibration dataset
 # -------------------------
 class CalibImages(Dataset):
-    def __init__(self, root: str, size: int = 640, subset_len: int = None):
+    def __init__(self, root: str, size_w: int = NET_W, size_h: int = NET_H, subset_len: int = None):
         p = Path(root)
         exts = ('*.jpg', '*.jpeg', '*.png', '*.bmp', '*.tif', '*.tiff')
         paths: List[Path] = []
@@ -58,7 +82,8 @@ class CalibImages(Dataset):
             # deterministic subset (no aug) — OK for calibration
             paths = paths[:subset_len]
         self.paths = paths
-        self.size = size
+        self.size_w = size_w
+        self.size_h = size_h
         self.to_tensor = transforms.ToTensor()  # 0..1, NO mean/std
 
     def __len__(self) -> int:
@@ -67,11 +92,11 @@ class CalibImages(Dataset):
     def __getitem__(self, i: int) -> Tuple[torch.Tensor, int]:
         # label is unused; return 0
         im = Image.open(self.paths[i]).convert('RGB')
-        im = letterbox_pil(im, self.size)
+        im = letterbox_pil(im, self.size_w, self.size_h)
         return self.to_tensor(im), 0
 
 def make_loader(root: str, batch_size: int, subset_len: int = None) -> DataLoader:
-    ds = CalibImages(root, 640, subset_len)
+    ds = CalibImages(root, NET_W, NET_H, subset_len)
     return DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=True, drop_last=False)
 
 # -------------------------
@@ -116,7 +141,7 @@ def run_inspector(model: torch.nn.Module, target: str):
         raise RuntimeError("Inspector requires --target (e.g., DPUCZDX8G).")
     from pytorch_nndct.apis import Inspector
     inspector = Inspector(target)
-    dummy = torch.randn(1, 3, 640, 640)
+    dummy = torch.randn(1, 3, NET_H, NET_W)
     inspector.inspect(model.to('cpu'), (dummy,), device='cpu')
 
 # -------------------------
@@ -127,7 +152,8 @@ def main():
     model = load_model(args.model_dir, device)
 
     # Dummy input for graph building
-    dummy = torch.randn(args.batch_size, 3, 640, 640)
+    # dummy = torch.randn(args.batch_size, 3, NET_H, NET_W)
+    dummy = torch.randn(1, 3, NET_H, NET_W)
 
     # Float-only path (rarely used here)
     if args.quant_mode == 'float':
@@ -169,6 +195,9 @@ def main():
         for images, _ in loader:
             images = images.to(device)
             _ = quant_model(images)  # collect stats (calib) or finalize (test)
+
+    # images, _ = next(iter(loader))
+    # print(images.shape, images.min().item(), images.max().item())  # expect [B,3,512,640], ~[0.0..1.0]
 
     # Print stub metrics (we’re not computing mAP here)
     print('loss: 0')
