@@ -12,6 +12,24 @@
       "label_color" : { "blue" : 240, "green" : 240, "red" : 240 },
       "label_filter" : [ "class", "probability" ],
       "classes" : [
+        {
+        "name" : "animal",
+        "blue" : 255,
+        "green" : 0,
+        "red" : 0
+        },
+        {
+        "name" : "person",
+        "blue" : 0,
+        "green" : 255,
+        "red" : 255
+        },
+        {
+        "name" : "vehicle",
+        "blue" : 0,
+        "green" : 0,
+        "red" : 255
+        }
       ]
     } 
   }

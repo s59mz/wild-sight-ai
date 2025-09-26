@@ -110,6 +110,11 @@ static const int kHeadW[kNumHeads] = {56, 28, 14,  7};
 // static const int kHeadH[kNumHeads] = {32, 16,  8,  4};
 // static const int kHeadW[kNumHeads] = {40, 20, 10,  5};
 
+// define class labels
+static const char* kClassNames[kNumClasses] = {
+  "animal", "person", "vehicle"
+};
+
 /* -----------------------------------------------------------
  * Decode a single NHWC head (H x W x 24 floats)
  * layout per cell (anchor-major): 8 floats
@@ -264,7 +269,7 @@ static inline void handle_tensorbuf(const TensorBuf* tb,
   root->bbox.width = frame_w; root->bbox.height = frame_h;
 
   for (const auto& d : kept) {
-    if (d.cls != 0) continue;  // show animals only for debugg
+    // if (d.cls != 0) continue;  // show animals only for debugg
 
     GstInferencePrediction* gchild = gst_inference_prediction_new();
     VvasInferPrediction *child = &gchild->prediction;
@@ -278,8 +283,15 @@ static inline void handle_tensorbuf(const TensorBuf* tb,
 
     GstInferenceClassification *gcls = gst_inference_classification_new();
     VvasInferClassification *cls = &gcls->classification;
+
+
     cls->class_id = d.cls;
     cls->class_prob = d.score;
+    cls->class_label = g_strdup(kClassNames[d.cls]);
+
+    cls->num_classes = 0;
+    cls->probabilities = nullptr;
+    cls->labels = nullptr;
 
     gst_inference_prediction_append_classification(gchild, gcls);
     gst_inference_prediction_append(groot, gchild);

@@ -3,17 +3,17 @@
    "num-labels": 3,
    "labels": [
       {
-       "label": 1,
+       "label": 0,
        "name": "animal",
        "display_name": "animal"
       },
       {
-       "label": 2,
+       "label": 1,
        "name": "person",
        "display_name": "person"
       },
       {
-       "label": 3,
+       "label": 2,
        "name": "vehicle",
        "display_name": "vehicle"
       }
