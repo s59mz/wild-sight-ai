@@ -256,7 +256,7 @@ overlay_node_foreach (VvasTreeNode * node, void * kpriv_ptr)
             //std::string camera_text = "Face Tracking: AZ:" + ss_azimuth.str() + ", EL:" + ss_elevation.str();
 
             if (cam_orient->conflict) {
-                std::string camera_text = "Human-Wildlife Conflict";
+                std::string camera_text = "Human-Wildlife Conflict Detected";
 
                 // Get frame dimensions from properties
                 int frame_width = frameinfo->inframe->props.width;
@@ -264,18 +264,16 @@ overlay_node_foreach (VvasTreeNode * node, void * kpriv_ptr)
 
                 // Calculate text size
                 int baseLine;
-                int font_size = (int) kpriv->font_size;
-
-                if (frame_width < 1920) {
-                    font_size /= 2;
-                }
-
-                Size text_size = getTextSize(camera_text, kpriv->font, font_size, kpriv->line_thickness, &baseLine);
+                int font_size = 2;
+                int thickness = 5;
+                Size text_size = getTextSize(camera_text, kpriv->font, font_size, thickness, &baseLine);
 
                 // Text position
                 int x = (frame_width - text_size.width) / 2;
                 int y = frame_height - baseLine - 60;
-                // int y = baseLine + 60;
+
+                text_size.width += 80;
+                text_size.height += 50;
 
                 unsigned char yScalar_cam;
                 unsigned short uvScalar_cam;
@@ -283,19 +281,22 @@ overlay_node_foreach (VvasTreeNode * node, void * kpriv_ptr)
                 color cam_clr = {50, 50, 50};
                 convert_rgb_to_yuv_clrs(cam_clr, &yScalar_cam, &uvScalar_cam);
 
-                rectangle (frameinfo->lumaImg, Rect (Point (x, y - text_size.height), text_size), Scalar (yScalar_cam), FILLED, 1, 0);
-                rectangle (frameinfo->chromaImg, Rect (Point (x / 2, y / 2 - text_size.height), text_size), Scalar (uvScalar_cam), FILLED, 1, 0);
+                /* Draw filled rectangle for labelling, both on y and uv plane */
+                rectangle (frameinfo->lumaImg, Rect (Point (x-40, y+26 - text_size.height), text_size), Scalar (yScalar_cam), FILLED, 1, 0);
+                text_size.height /=2;
+                text_size.width /=2;
+                rectangle (frameinfo->chromaImg, Rect (Point ((x-40) / 2, (y+26) / 2 - text_size.height), text_size), Scalar (uvScalar_cam), FILLED, 1, 0);
 
-                cam_clr = {240, 24, 240};
+                cam_clr = {240, 240, 240};
                 convert_rgb_to_yuv_clrs(cam_clr, &yScalar_cam, &uvScalar_cam);
 
                 // Draw text on Y plane
                 putText (frameinfo->lumaImg, camera_text, cv::Point (x, y), kpriv->font, 
-                                     font_size, Scalar (yScalar_cam), kpriv->line_thickness, 1);
+                                     font_size, Scalar (yScalar_cam), thickness, 1);
 
                 // Draw text on UV plane
                 putText (frameinfo->chromaImg, camera_text, cv::Point (x / 2, y / 2), kpriv->font, 
-                                     font_size / 2, Scalar (uvScalar_cam), kpriv->line_thickness / 2, 1);
+                                     font_size / 2, Scalar (uvScalar_cam), thickness, 1);
                 }
             }
       }
