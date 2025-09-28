@@ -31,6 +31,7 @@ if  docker image inspect $APP_IMAGE > /dev/null 2>&1 ; then
     -v /sys:/sys \
     -v /etc/vart.conf:/etc/vart.conf \
     -v /lib/firmware/xilinx:/lib/firmware/xilinx \
+    -v $(pwd)/wild-sight-app:/root/wild-sight-app \
     -v $(pwd)/ros2_ws:/root/ros2_ws \
     -v $(pwd)/config/objectdetect:/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect \
     -v $(pwd)/models:/opt/xilinx/kr260-wild-sight/share/vitis_ai_library/models \

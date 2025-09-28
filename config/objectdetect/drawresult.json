@@ -23,12 +23,6 @@
         "blue" : 0,
         "green" : 255,
         "red" : 255
-        },
-        {
-        "name" : "vehicle",
-        "blue" : 0,
-        "green" : 0,
-        "red" : 255
         }
       ]
     } 

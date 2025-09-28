@@ -9,4 +9,5 @@ int32 bbox_width
 int32 bbox_height
 
 # inference status
-bool object_detected
+bool animal_detected
+bool conflict_detected

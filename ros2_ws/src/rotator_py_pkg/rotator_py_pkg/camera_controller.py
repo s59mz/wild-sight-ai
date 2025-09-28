@@ -52,6 +52,7 @@ class CameraControllerNode(Node):
         # object tracking state
         self.object_tracking_ = False
         self.frame_count_ = 0
+        self.lamp_count_ = 0
 
         # motor speed definition
         self.pan_speed_: int = 0
@@ -61,12 +62,15 @@ class CameraControllerNode(Node):
         self.switch_cmd_ = SwitchCmd()
 
         self.update_motor_speed()
-        self.switch_lamp(False)
+        self.switch_lamp(False, True)
 
         self.get_logger().info("Node Created")
 
     def callback_object_detect(self, msg: ObjectDetect):
-        if (msg.object_detected):
+        # turn the lamp on if conflict is detected
+        self.switch_lamp(msg.conflict_detected, False)
+
+        if (msg.animal_detected):
             self.frame_count_ = 0
 
             # calculate object position relative to frame center
@@ -80,13 +84,13 @@ class CameraControllerNode(Node):
             self.offset_x = object_center_x - center_x;
 
             # calculate required motor speed for tracking
-            if (abs(self.offset_x) > msg.bbox_width / 2):
+            if (abs(self.offset_x) > msg.frame_width / 8):
                 self.pan_speed_ = (int) (- self.offset_x * 240 / msg.frame_width)
             else:
                 # object is centered enough in X
                 self.pan_speed_ = 0
 
-            if (abs(self.offset_y) > msg.bbox_height / 4):
+            if (abs(self.offset_y) > msg.frame_height / 4):
                 self.tilt_speed_ = (int) (- self.offset_y)
             else:
                 # object is centered enough in Y
@@ -108,9 +112,6 @@ class CameraControllerNode(Node):
         # start the motor imediately
         self.update_motor_speed()
 
-        # turn the lamp on
-        self.switch_lamp(True)
-        
         # start updating timer
         if (self.updating_timer_ == None):
             self.updating_timer_ = self.create_timer(self.updating_period_, 
@@ -125,9 +126,6 @@ class CameraControllerNode(Node):
         self.tilt_speed_ = 0
         self.update_motor_speed()
 
-        # turn the lamp off
-        self.switch_lamp(False)
-        
         # stop updating timer
         if self.updating_timer_:
             self.updating_timer_.cancel()
@@ -138,9 +136,20 @@ class CameraControllerNode(Node):
         self.motor_cmd_.tilt_speed = self.tilt_speed_
         self.motor_publisher_.publish(self.motor_cmd_)
 
-    def switch_lamp(self, lamp_state):
-        self.switch_cmd_.switch_on = lamp_state
-        self.switch_publisher_.publish(self.switch_cmd_)
+    def switch_lamp(self, lamp_state, force):
+        if force or lamp_state:
+            self.switch_cmd_.switch_on = lamp_state
+            self.switch_publisher_.publish(self.switch_cmd_)
+            self.lamp_count_ = 0
+        else:
+            if (self.switch_cmd_.switch_on != lamp_state):
+                self.lamp_count_ += 1
+                if self.lamp_count_ > 10:
+                    self.switch_cmd_.switch_on = lamp_state
+                    self.switch_publisher_.publish(self.switch_cmd_)
+                    self.lamp_count_ = 0
+            else:
+                self.lamp_count_ = 0
 
 
 def main(args=None):

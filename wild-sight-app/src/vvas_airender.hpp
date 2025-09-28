@@ -25,6 +25,7 @@ typedef struct _CameraOrientation
 {
   float azimuth;
   float elevation;
+  bool conflict;
 } CameraOrientation;
 
 enum

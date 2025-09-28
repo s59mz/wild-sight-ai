@@ -102,28 +102,55 @@ public:
             return;
         }
 
-        // Get the  vvas_xinfer element
-        probe_element_ = gst_bin_get_by_name(GST_BIN(pipeline_), "infer");
-        if (!probe_element_) {
-            RCLCPP_ERROR(this->get_logger(), "Failed to get gst element");
+        //
+        // Get the  vvas_xinfer infer element
+        //
+        probe_infer_element_ = gst_bin_get_by_name(GST_BIN(pipeline_), "infer");
+        if (!probe_infer_element_) {
+            RCLCPP_ERROR(this->get_logger(), "Failed to get infer element");
             gst_object_unref(pipeline_);
             rclcpp::shutdown();
             return;
         }
 
-        // Attach a draw probe to the Source pad of the Infer element
-        GstPad *probe_pad = gst_element_get_static_pad(probe_element_, "src");
-        if (!probe_pad) {
-            RCLCPP_ERROR(this->get_logger(), "Failed to get pad from gst element");
-            gst_object_unref(probe_element_);
+        // Attach a probe to the source pad of the infer element
+        GstPad *probe_infer_pad = gst_element_get_static_pad(probe_infer_element_, "src");
+        if (!probe_infer_pad) {
+            RCLCPP_ERROR(this->get_logger(), "Failed to get pad from infer element");
+            gst_object_unref(probe_infer_element_);
             gst_object_unref(pipeline_);
             rclcpp::shutdown();
             return;
         }
 	
 	    // Attach  a callback to the probe
-        gst_pad_add_probe(probe_pad, GST_PAD_PROBE_TYPE_BUFFER, probe_callback, this, nullptr);
-        gst_object_unref(probe_pad);
+        gst_pad_add_probe(probe_infer_pad, GST_PAD_PROBE_TYPE_BUFFER, probe_infer_callback, this, nullptr);
+        gst_object_unref(probe_infer_pad);
+
+        //
+        // Get the  vvas_xfilter draw element
+        //
+        probe_draw_element_ = gst_bin_get_by_name(GST_BIN(pipeline_), "draw");
+        if (!probe_draw_element_) {
+            RCLCPP_ERROR(this->get_logger(), "Failed to get draw element");
+            gst_object_unref(pipeline_);
+            rclcpp::shutdown();
+            return;
+        }
+
+        // Attach a probe to the sink pad of the draw element
+        GstPad *probe_draw_pad = gst_element_get_static_pad(probe_draw_element_, "sink");
+        if (!probe_draw_pad) {
+            RCLCPP_ERROR(this->get_logger(), "Failed to get pad from draw element");
+            gst_object_unref(probe_draw_element_);
+            gst_object_unref(pipeline_);
+            rclcpp::shutdown();
+            return;
+        }
+	
+	    // Attach  a callback to the probe
+        gst_pad_add_probe(probe_draw_pad, GST_PAD_PROBE_TYPE_BUFFER, probe_draw_callback, this, nullptr);
+        gst_object_unref(probe_draw_pad);
 
 	    // initialize camera orientation structs
 	    camera_orientation_.azimuth = 0.0;
@@ -136,11 +163,12 @@ public:
     ~GStreamerPipeline() {
         // Free resources
         gst_element_set_state(pipeline_, GST_STATE_NULL);
-        gst_object_unref(probe_element_);
+        gst_object_unref(probe_infer_element_);
+        gst_object_unref(probe_draw_element_);
         gst_object_unref(pipeline_);
     }
 
-    void publish_max_bounding_box(const VvasBoundingBox *res_bbox, const VvasBoundingBox *obj_bbox) {
+    void publish_max_bounding_box(const VvasBoundingBox *res_bbox, const VvasBoundingBox *obj_bbox, int conflict_det) {
         //static unsigned int frame_count = 0;
 
         // Handle only each N-th frame to reduce latency 
@@ -156,7 +184,8 @@ public:
             msg.bbox_y = obj_bbox->y;
             msg.bbox_width = obj_bbox->width;
             msg.bbox_height = obj_bbox->height;
-            msg.object_detected = true;
+            msg.animal_detected = true;
+            msg.conflict_detected = conflict_det;
         } else {
             msg.frame_width = 0;
             msg.frame_height = 0;
@@ -164,30 +193,21 @@ public:
             msg.bbox_y = 0;
             msg.bbox_width = 0;
             msg.bbox_height = 0;
-            msg.object_detected = false;
+            msg.animal_detected = false;
+            msg.conflict_detected = false;
         }
 
         object_detect_publisher_->publish(msg);
     }
 
-    static void handle_inference_meta(GstInferenceMeta *inference_meta, GStreamerPipeline *gsnode) {
-	    // camera orientation struct to be shared between ros2 node and vvas library
-        static CameraOrientation *cam_orient = nullptr;
-
-        if (!cam_orient) {
-            cam_orient = new CameraOrientation();
-	    }
-
-
+    // handle the received raw tensors from the infer element
+    static void handle_inference_meta_infer(GstInferenceMeta *inference_meta) {
 	    // Get the parent prediction struct
         if (inference_meta && inference_meta->prediction) {
             GstInferencePrediction *predictions = inference_meta->prediction;
 
 	        // ceck if detected any objects
             if (predictions) {
-                GstInferencePrediction *largest_child_pred = nullptr;
-                guint max_width = 0;
-
                 // get root element of linked list
                 VvasInferPrediction *prediction = & predictions->prediction;
                 VvasTreeNode *root = prediction->node;
@@ -205,30 +225,88 @@ public:
                         if (child_pred) {
                             // get tensor buffer from child node
                             TensorBuf *tb = child_pred->tb;
-                            if (tb) {
 
+                            if (tb) {
+                                // decode raw yolov5 tensors
                                 GstInferencePrediction *root_pred = nullptr;
                                 handle_tensorbuf(tb, &root_pred, parent_bbox->width, parent_bbox->height);
+
                                 if (root_pred) {
+                                    // attach from the raw tensor decoded list of detected objects
                                     gst_inference_prediction_unref(inference_meta->prediction);
                                     inference_meta->prediction = root_pred;
                                 }
                             }
-                            else {
-                                // find the largest boundary box
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    static void handle_inference_meta_draw(GstInferenceMeta *inference_meta, GStreamerPipeline *gsnode) {
+	    // camera orientation struct to be shared between ros2 node and vvas library
+        static CameraOrientation *cam_orient = nullptr;
+
+        if (!cam_orient) {
+            cam_orient = new CameraOrientation();
+	    }
+
+	    // Get the parent prediction struct
+        if (inference_meta && inference_meta->prediction) {
+            GstInferencePrediction *predictions = inference_meta->prediction;
+
+	        // ceck if detected any objects
+            if (predictions) {
+                GstInferencePrediction *largest_child_pred = nullptr;
+
+                guint max_width = 0;
+                int animal_det = 0;
+                int person_det = 0;
+                int conflict_det = 0;
+
+                // get root element of linked list
+                VvasInferPrediction *prediction = & predictions->prediction;
+                VvasTreeNode *root = prediction->node;
+
+                // get parent bbox
+                VvasBoundingBox * parent_bbox = &prediction->bbox;
+
+		        // walk through linked list of detected objects
+                if (root) {
+                    for (VvasTreeNode* child = root->children; child != nullptr; child = child->next) {
+
+                        GstInferencePrediction* gpred = (GstInferencePrediction*) child->data;
+                        VvasInferPrediction *child_pred = &gpred->prediction; 
+                        
+                        if (child_pred) {
+                            // read class id
+                            VvasList *classes = child_pred->classifications;
+                            VvasInferClassification *classification = &((GstInferenceClassification *) classes->data)->classification;
+                            int class_id = classification->class_id;
+
+                            if (class_id == 0) {    // animal detected
+                                animal_det++;
+
+                                // find the largest boundary box of detected animal, track animals only
                                 if (child_pred->bbox.width > max_width) {
                                     max_width = child_pred->bbox.width;
                                     largest_child_pred = gpred;
                                 }
                             }
+
+                            if (class_id == 1) person_det++;    // person detected
                         }
                     }
                 }
 
 		        // check if the largest boundary box even exists
                 if (largest_child_pred) {
+                    // check if human-wildlife conflict is detected
+                    if (animal_det && person_det) conflict_det = true;
+
 		            // publish the largest one
-                    gsnode->publish_max_bounding_box(parent_bbox, &largest_child_pred->prediction.bbox);
+                    gsnode->publish_max_bounding_box(parent_bbox, &largest_child_pred->prediction.bbox, conflict_det);
 
 
                     // Also, attach the inclinometer shared data struct to the 
@@ -242,6 +320,7 @@ public:
 
                         cam_orient->azimuth = gsnode->camera_orientation_.azimuth;
                         cam_orient->elevation = gsnode->camera_orientation_.elevation;
+                        cam_orient->conflict = conflict_det;
                     }
 
                     return;
@@ -250,22 +329,18 @@ public:
         }
 
 	    // no objects detected, but we count empty frames for timeout too
-        gsnode->publish_max_bounding_box(nullptr, nullptr);
+        gsnode->publish_max_bounding_box(nullptr, nullptr, false);
     }
 
-    // The Attached GStreamer Element Probe Callback
-    static GstPadProbeReturn probe_callback(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
+    // The Attached GStreamer Infer Element Probe Callback
+    static GstPadProbeReturn probe_infer_callback(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
         static int cnt =0;
         cnt ++;
-        if (!pad) return GST_PAD_PROBE_OK;
+        if (!pad || !user_data) return GST_PAD_PROBE_OK;
         if (!(info->type & GST_PAD_PROBE_TYPE_BUFFER)) return GST_PAD_PROBE_OK;
-
-	    // Get the Class Node object
-        GStreamerPipeline *node = reinterpret_cast<GStreamerPipeline *>(user_data);
 
         GstBuffer *buf = GST_PAD_PROBE_INFO_BUFFER(info);
         if (!buf) {
-            node->publish_max_bounding_box(nullptr, nullptr);
             return GST_PAD_PROBE_OK;
         }
 
@@ -274,11 +349,38 @@ public:
         if (meta) {
 	        // found one, let's handle it
             GstInferenceMeta *infer_meta = reinterpret_cast<GstInferenceMeta *>(meta);
-            // g_printerr("cnt=%d\n", cnt);
-            handle_inference_meta(infer_meta, node);
+            handle_inference_meta_infer(infer_meta);
+        }
+
+        return GST_PAD_PROBE_OK;
+    }
+
+    // The Attached GStreamer Draw Element Probe Callback
+    static GstPadProbeReturn probe_draw_callback(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
+        static int cnt =0;
+        cnt ++;
+        if (!pad || !user_data) return GST_PAD_PROBE_OK;
+        if (!(info->type & GST_PAD_PROBE_TYPE_BUFFER)) return GST_PAD_PROBE_OK;
+
+	    // Get the Class Node object
+        GStreamerPipeline *node = reinterpret_cast<GStreamerPipeline *>(user_data);
+
+        GstBuffer *buf = GST_PAD_PROBE_INFO_BUFFER(info);
+        if (!buf) {
+	        // Needed for counting empty frames for timeout
+            node->publish_max_bounding_box(nullptr, nullptr, false);
+            return GST_PAD_PROBE_OK;
+        }
+
+        // Get Gst inference meta from buffer
+        GstMeta *meta = gst_buffer_get_meta(buf, GST_INFERENCE_META_API_TYPE);
+        if (meta) {
+	        // found one, let's handle it
+            GstInferenceMeta *infer_meta = reinterpret_cast<GstInferenceMeta *>(meta);
+            handle_inference_meta_draw(infer_meta, node);
         } else {
 	        // Needed for counting empty frames for timeout
-            node->publish_max_bounding_box(nullptr, nullptr);
+            node->publish_max_bounding_box(nullptr, nullptr, false);
         }
 
         return GST_PAD_PROBE_OK;
@@ -298,8 +400,9 @@ public:
 private:
     std::mutex mutex_;		// mutex for guarding between ROS2 node and VVAS library threads
 
-    GstElement *pipeline_;	        // GStreamer Pipeline
-    GstElement *probe_element_;	    // GStreamer element to be probed
+    GstElement *pipeline_;	                // GStreamer Pipeline
+    GstElement *probe_infer_element_;	    // GStreamer infer element to be probed
+    GstElement *probe_draw_element_;	    // GStreamer draw element to be probed
 
     CameraOrientation camera_orientation_;	// Stores cam orientation received by ROS2 subscriber
 

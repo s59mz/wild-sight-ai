@@ -236,54 +236,68 @@ overlay_node_foreach (VvasTreeNode * node, void * kpriv_ptr)
               new_ymin / 2), Point (new_xmax / 2,
               new_ymax / 2), Scalar (uvScalar), kpriv->line_thickness, 1, 0);
 
-	//
-	// Show Camera Orientation - place a dynamic text on a screen
-	//
-	
-	// check if custom data struct exista
-	if (gst_prediction && gst_prediction->reserved_1) {
-	    std::stringstream ss_azimuth, ss_elevation;
+        //
+        // Show Camera Orientation - place a dynamic text on a screen
+        //
+        
+        // check if custom data struct exista
+        if (gst_prediction && gst_prediction->reserved_1) {
+            std::stringstream ss_azimuth, ss_elevation;
 
-		CameraOrientation * cam_orient = reinterpret_cast<CameraOrientation *>(gst_prediction->reserved_1);
+            CameraOrientation * cam_orient = reinterpret_cast<CameraOrientation *>(gst_prediction->reserved_1);
 
-		// Format azimuth
-		ss_azimuth << std::setw(6) << std::setfill(' ') << std::fixed << std::setprecision(2) << cam_orient->azimuth;
+            // Format azimuth
+            ss_azimuth << std::setw(6) << std::setfill(' ') << std::fixed << std::setprecision(2) << cam_orient->azimuth;
 
-		// Format elevation if needed similarly
-		ss_elevation << std::setw(6) << std::setfill(' ') << std::fixed << std::setprecision(2) << cam_orient->elevation;
+            // Format elevation if needed similarly
+            ss_elevation << std::setw(6) << std::setfill(' ') << std::fixed << std::setprecision(2) << cam_orient->elevation;
 
-		// Combine the formatted strings into a single text
-		std::string camera_text = "Face Tracking: AZ:" + ss_azimuth.str() + ", EL:" + ss_elevation.str();
+            // Combine the formatted strings into a single text
+            //std::string camera_text = "Face Tracking: AZ:" + ss_azimuth.str() + ", EL:" + ss_elevation.str();
 
-		// Get frame dimensions from properties
-		int frame_width = frameinfo->inframe->props.width;
-		int frame_height = frameinfo->inframe->props.height;
+            if (cam_orient->conflict) {
+                std::string camera_text = "Human-Wildlife Conflict";
 
-		// Calculate text size
-		int baseLine;
-		int font_size = (int) kpriv->font_size;
+                // Get frame dimensions from properties
+                int frame_width = frameinfo->inframe->props.width;
+                int frame_height = frameinfo->inframe->props.height;
 
-		if (frame_width < 1920) {
-		    font_size /= 2;
-		}
+                // Calculate text size
+                int baseLine;
+                int font_size = (int) kpriv->font_size;
 
-		Size text_size = getTextSize(camera_text, kpriv->font, font_size, kpriv->line_thickness, &baseLine);
+                if (frame_width < 1920) {
+                    font_size /= 2;
+                }
 
-		// Text position
-		int x = (frame_width - text_size.width) / 2;
-		int y = frame_height - baseLine - 30;
+                Size text_size = getTextSize(camera_text, kpriv->font, font_size, kpriv->line_thickness, &baseLine);
 
-		convert_rgb_to_yuv_clrs(kpriv->label_color, &yScalar, &uvScalar);
+                // Text position
+                int x = (frame_width - text_size.width) / 2;
+                int y = frame_height - baseLine - 60;
+                // int y = baseLine + 60;
 
-		// Draw text on Y plane
-		putText (frameinfo->lumaImg, camera_text, cv::Point (x, y), kpriv->font, 
-							 font_size, Scalar (yScalar), kpriv->line_thickness, 1);
+                unsigned char yScalar_cam;
+                unsigned short uvScalar_cam;
 
-		// Draw text on UV plane
-		putText (frameinfo->chromaImg, camera_text, cv::Point (x / 2, y / 2), kpriv->font, 
-							 font_size / 2, Scalar (uvScalar), kpriv->line_thickness, 1);
-	   }
+                color cam_clr = {50, 50, 50};
+                convert_rgb_to_yuv_clrs(cam_clr, &yScalar_cam, &uvScalar_cam);
 
+                rectangle (frameinfo->lumaImg, Rect (Point (x, y - text_size.height), text_size), Scalar (yScalar_cam), FILLED, 1, 0);
+                rectangle (frameinfo->chromaImg, Rect (Point (x / 2, y / 2 - text_size.height), text_size), Scalar (uvScalar_cam), FILLED, 1, 0);
+
+                cam_clr = {240, 24, 240};
+                convert_rgb_to_yuv_clrs(cam_clr, &yScalar_cam, &uvScalar_cam);
+
+                // Draw text on Y plane
+                putText (frameinfo->lumaImg, camera_text, cv::Point (x, y), kpriv->font, 
+                                     font_size, Scalar (yScalar_cam), kpriv->line_thickness, 1);
+
+                // Draw text on UV plane
+                putText (frameinfo->chromaImg, camera_text, cv::Point (x / 2, y / 2), kpriv->font, 
+                                     font_size / 2, Scalar (uvScalar_cam), kpriv->line_thickness / 2, 1);
+                }
+            }
       }
 
       if (label_present) {
@@ -301,10 +315,10 @@ overlay_node_foreach (VvasTreeNode * node, void * kpriv_ptr)
         convert_rgb_to_yuv_clrs (kpriv->label_color, &yScalar, &uvScalar);
         putText (frameinfo->lumaImg, label_string, cv::Point (new_xmin,
                 new_ymin + frameinfo->y_offset), kpriv->font, kpriv->font_size,
-            Scalar (yScalar), 1, 1);
+            Scalar (yScalar), 2, 1);
         putText (frameinfo->chromaImg, label_string, cv::Point (new_xmin / 2,
                 new_ymin / 2 + frameinfo->y_offset / 2), kpriv->font,
-            kpriv->font_size / 2, Scalar (uvScalar), 1, 1);
+            kpriv->font_size / 2, Scalar (uvScalar), 2, 1);
       }
 
     } else if (frameinfo->inframe->props.fmt == VVAS_VFMT_BGR8) {
