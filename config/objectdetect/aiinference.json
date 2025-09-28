@@ -11,9 +11,7 @@
       "model-path": "/opt/xilinx/kr260-wild-sight/share/vitis_ai_library/models/",
       "model-format": "RGB",
       "vitis-ai-preprocess": false,
-
       "batch-size": 1,
-
       "low-latency": true,    
       "batch-timeout": 1,      
       "batch-wait-timeout": 1000,

@@ -64,8 +64,8 @@ static inline float sigmoid(float x) {
 static constexpr int   kNumHeads    = 4;
 static constexpr int   kNumAnchors  = 3;
 static constexpr int   kNumClasses  = 3;
-static constexpr float kConfThresh  = 0.85;    // tweak as needed
-static constexpr float kNMSThresh   = 0.85f;    // tweak as needed
+static constexpr float kConfThresh  = 0.70f;    // tweak as needed
+static constexpr float kNMSThresh   = 0.45f;    // tweak as needed
 
 static const float kStrides[kNumHeads] = { 8.f, 16.f, 32.f, 64.f };
 

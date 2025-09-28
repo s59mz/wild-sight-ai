@@ -1,9 +1,0 @@
-{
-  "config": {
-    "conv-class": "dpuinfer",
-    "model-class": "FACEDETECT",
-    "filter-score-threshold": 0.5,
-    "thickness" : 6,
-    "attach-label": false
-  }
-}
