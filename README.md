@@ -74,10 +74,6 @@ Wild-Sight-AI is a project designed for the Kria KR260 board that enables AI-dri
     ./build.sh
     ```
 
-    For a visual guide on building and installing the Wild-Sight-AI application, watch this [YouTube video](https://www.youtube.com/watch?v=w_0K5YZrkO0).
-
-    [![Building and Installing the Wild Sight AI Application](https://img.youtube.com/vi/w_0K5YZrkO0/hqdefault.jpg)](https://www.youtube.com/watch?v=w_0K5YZrkO0)
-
 ## Launching the Docker Image
 
 1. **Launch the Docker Image**:
@@ -120,9 +116,9 @@ Wild-Sight-AI is a project designed for the Kria KR260 board that enables AI-dri
       ./run_app.sh rtsp://192.168.1.20:554/stream1
       ```
 
-    For a visual guide on starting the Wild-Sight-AI application, watch this [YouTube video](https://www.youtube.com/watch?v=IakoRX5yPNo).
+    Watch a live demo of Wild-Sight-AI detecting animals and humans in real-time on the Kria board, raising alerts for potential human-wildlife conflicts, and tracking detected objects.
 
-    [![Starting the Wild Sight AI Application](https://img.youtube.com/vi/IakoRX5yPNo/hqdefault.jpg)](https://www.youtube.com/watch?v=IakoRX5yPNo)
+    [![Wild-Sight-AI – Real-Time Animal & Human Conflict Detection on Kria DPU](https://img.youtube.com/vi/Weteg4Qui8w/hqdefault.jpg)](https://www.youtube.com/watch?v=Weteg4Qui8w)
 
 ## License
 
