@@ -4,7 +4,7 @@ Wild-Sight-AI is a project designed for the Kria KR260 board that enables AI-dri
 
 ## Requirements
 
-1. **Kria KR260 Board**: Ensure that your KRIA™ KR260 board has the official Ubuntu image with updatet zocl v2.15 kernel module installed and Docker set up. The board should be prepared for running official demo applications from AMD, such as the **Smartcam demo** application.
+1. **Kria KR260 Board**: Ensure that your KRIA™ KR260 board has installed the custom [WildSight-AI Ready](https://github.com/s59mz/kria-build-system/releases/tag/wild-sight-ai-1.0) Ubuntu SD-card image with updatet zocl v2.15 kernel module installed and Docker set up. The with this image installed, the board is also prepared for running official demo applications from AMD, such as the **Smartcam demo** application.
 
 2. **IP Camera**: You will need an IP camera that supports RTSP streaming with a resolution of 1920x1080. The camera should be connected to the same local network as the Kria board. A recommended camera is the [SIMICAM 4k Video Cam](https://a.aliexpress.com/_EznpRub) or similar.
 
