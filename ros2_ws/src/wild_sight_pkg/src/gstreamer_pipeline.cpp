@@ -27,6 +27,12 @@
 #include <glib.h>
 #include <gst/gst.h>
 #include <gst/vvas/gstinferencemeta.h>
+#include <gst/video/video.h>
+
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
 
 #include <vvas_utils/vvas_node.h>
 #include <vvas_core/vvas_infer_prediction.h>
@@ -34,6 +40,7 @@
 
 #include "wild_sight_interfaces/msg/object_detect.hpp"
 #include "wild_sight_interfaces/msg/camera_orientation.hpp"
+#include "wild_sight_interfaces/msg/take_snapshot.hpp"
 #include "wild_sight_pkg/cameradata.h"
 
 // tensor debug
@@ -61,18 +68,24 @@ public:
 	this->get_parameter("camera_url", camera_url_);
 
 	// create a publisher
-        object_detect_publisher_ = this->create_publisher<wild_sight_interfaces::msg::ObjectDetect>("object_detect", 10);
+    object_detect_publisher_ = this->create_publisher<wild_sight_interfaces::msg::ObjectDetect>("object_detect", 10);
 
 	// create a subscriber
-        inclinometer_subscription_ = this->create_subscription<wild_sight_interfaces::msg::CameraOrientation>(
+    inclinometer_subscription_ = this->create_subscription<wild_sight_interfaces::msg::CameraOrientation>(
 		"camera_orientation", 10, 
 		std::bind(&GStreamerPipeline::inclinometer_callback, this, std::placeholders::_1)
-        );
+    );
 
-        // Initialize GStreamer
-        gst_init(nullptr, nullptr);
+    takesnapshot_subscription_ = this->create_subscription<wild_sight_interfaces::msg::TakeSnapshot>(
+		"take_snapshot", 10, 
+		std::bind(&GStreamerPipeline::takesnapshot_callback, this, std::placeholders::_1)
+    );
 
-        // Build the pipeline string
+    // Initialize GStreamer
+    // Initialize GStreamer
+    gst_init(nullptr, nullptr);
+
+    // Build the pipeline string
 	std::string pipeline_str = "rtspsrc location=" + camera_url_ + " ! "
         "rtph265depay ! h265parse ! omxh265dec ! "
         "videoconvert ! video/x-raw,format=NV12,width=1920,height=1080 ! "
@@ -158,6 +171,9 @@ public:
 
         // Start playing
         gst_element_set_state(pipeline_, GST_STATE_PLAYING);
+
+        // disable taking snapshots for now
+        should_take_snapshot_ = false;
     }
 
     ~GStreamerPipeline() {
@@ -358,6 +374,8 @@ public:
     // The Attached GStreamer Draw Element Probe Callback
     static GstPadProbeReturn probe_draw_callback(GstPad *pad, GstPadProbeInfo *info, gpointer user_data) {
         static int cnt =0;
+        bool take_snapshot = false;
+
         cnt ++;
         if (!pad || !user_data) return GST_PAD_PROBE_OK;
         if (!(info->type & GST_PAD_PROBE_TYPE_BUFFER)) return GST_PAD_PROBE_OK;
@@ -383,18 +401,105 @@ public:
             node->publish_max_bounding_box(nullptr, nullptr, false);
         }
 
+        // check the snapshot request flag
+        { 
+                std::lock_guard<std::mutex> lock(node->mutex_);
+
+                take_snapshot = node->should_take_snapshot_;
+                node->should_take_snapshot_ = false; // reset flag
+        }
+
+        // Take a video snapshot, if requested
+        if (take_snapshot) {
+            // Get caps from pad to decode width/height/format
+            GstCaps *caps = gst_pad_get_current_caps(pad);
+            if (!caps) {
+                RCLCPP_ERROR(node->get_logger(), "Snapshot probe: no caps available");
+                return GST_PAD_PROBE_OK;
+            }
+
+            GstVideoInfo vinfo;
+            if (!gst_video_info_from_caps(&vinfo, caps)) {
+                RCLCPP_ERROR(node->get_logger(), "Snapshot probe: failed to read GstVideoInfo");
+                gst_caps_unref(caps);
+                return GST_PAD_PROBE_OK;
+            }
+            gst_caps_unref(caps);
+
+            // Map the buffer into GstVideoFrame to access planes & stride safely
+            GstVideoFrame vframe;
+            if (!gst_video_frame_map(&vframe, &vinfo, buf, GST_MAP_READ)) {
+                RCLCPP_ERROR(node->get_logger(), "Snapshot probe: gst_video_frame_map() failed");
+                return GST_PAD_PROBE_OK;
+            }
+
+            RCLCPP_INFO(node->get_logger(),
+                        "Snapshot triggered: format=%s %dx%d planes=%d",
+                        gst_video_format_to_string(GST_VIDEO_FRAME_FORMAT(&vframe)),
+                        GST_VIDEO_FRAME_WIDTH(&vframe),
+                        GST_VIDEO_FRAME_HEIGHT(&vframe),
+                        GST_VIDEO_FRAME_N_PLANES(&vframe));
+
+            // Do the actual conversion + JPEG save
+            node->convert_and_save_jpeg(vframe);
+
+            // Unmap when done
+            gst_video_frame_unmap(&vframe);
+        }
+
         return GST_PAD_PROBE_OK;
     }
 
     // Inclinometer subscription callback
     void inclinometer_callback(const wild_sight_interfaces::msg::CameraOrientation::SharedPtr msg) {
 
-	{   // received data from subscriber, save them with a lock guard
-            std::lock_guard<std::mutex> lock(this->mutex_);
+        {   // received data from subscriber, save them with a lock guard
+                std::lock_guard<std::mutex> lock(this->mutex_);
 
-            this->camera_orientation_.azimuth = msg->azimuth;
-            this->camera_orientation_.elevation = msg->elevation;
-	}
+                this->camera_orientation_.azimuth = msg->azimuth;
+                this->camera_orientation_.elevation = msg->elevation;
+        }
+    }
+
+    // take snapshot subscription callback
+    void takesnapshot_callback(const wild_sight_interfaces::msg::TakeSnapshot::SharedPtr msg) {
+
+        {   // received data from subscriber, save them with a lock guard
+                std::lock_guard<std::mutex> lock(this->mutex_);
+
+                this->should_take_snapshot_ = msg->take_snapshot;
+        }
+    }
+
+    void convert_and_save_jpeg(GstVideoFrame &vframe)
+    {
+        int width  = GST_VIDEO_FRAME_WIDTH(&vframe);
+        int height = GST_VIDEO_FRAME_HEIGHT(&vframe);
+
+        uint8_t *y_plane  = static_cast<uint8_t*>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 0));
+        uint8_t *uv_plane = static_cast<uint8_t*>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 1));
+
+        int y_stride  = GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 0);
+        int uv_stride = GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 1);
+
+        RCLCPP_INFO(this->get_logger(),
+                    "Converting NV12 snapshot: %dx%d y_stride=%d uv_stride=%d",
+                    width, height, y_stride, uv_stride);
+
+        cv::Mat y(height, width, CV_8UC1, y_plane, y_stride);
+        cv::Mat uv(height / 2, width / 2, CV_8UC2, uv_plane, uv_stride);
+
+        cv::Mat bgr;
+        cv::cvtColorTwoPlane(y, uv, bgr, cv::COLOR_YUV2BGR_NV12);
+
+        std::string filename =
+            "/tmp/snapshot_" + std::to_string(this->now().nanoseconds()) + ".jpg";
+
+        if (cv::imwrite(filename, bgr)) {
+            RCLCPP_INFO(this->get_logger(), "Snapshot saved to %s", filename.c_str());
+        } else {
+            RCLCPP_ERROR(this->get_logger(), "Failed to save snapshot");
+        }
     }
 
 private:
@@ -411,6 +516,11 @@ private:
 
     // subscriber for receiving Camera's Inclinometer data
     rclcpp::Subscription<wild_sight_interfaces::msg::CameraOrientation>::SharedPtr inclinometer_subscription_;
+
+    // subscriber for receiving a take snapshot request
+    rclcpp::Subscription<wild_sight_interfaces::msg::TakeSnapshot>::SharedPtr takesnapshot_subscription_;
+
+    bool should_take_snapshot_;        // take a sapshot request flag 
 };
 
 int main(int argc, char *argv[]) {

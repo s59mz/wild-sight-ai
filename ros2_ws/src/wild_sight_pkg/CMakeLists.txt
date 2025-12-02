@@ -29,8 +29,16 @@ find_package(wild_sight_interfaces REQUIRED)
 # Find GStreamer
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GST REQUIRED gstreamer-1.0)
+pkg_check_modules(GSTREAMER_VIDEO REQUIRED gstreamer-video-1.0)
 
-include_directories(include ${GST_INCLUDE_DIRS})
+# Find OpenCV
+find_package(OpenCV REQUIRED)
+
+include_directories(include 
+    ${GST_INCLUDE_DIRS}
+    ${GSTREAMER_VIDEO_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS}
+)
 
 add_executable(gstreamer_pipeline src/gstreamer_pipeline.cpp)
 ament_target_dependencies(gstreamer_pipeline wild_sight_interfaces rclcpp)
@@ -38,6 +46,8 @@ ament_target_dependencies(gstreamer_pipeline wild_sight_interfaces rclcpp)
 # Link GStreamer libraries
 target_link_libraries(gstreamer_pipeline 
     ${GST_LIBRARIES}
+    ${GSTREAMER_VIDEO_LIBRARIES}
+    ${OpenCV_LIBS}
     libgstvvasinfermeta-3.0.so
     libvvascore_utils-1.0.so
 )

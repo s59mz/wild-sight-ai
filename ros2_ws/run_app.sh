@@ -20,7 +20,8 @@
 
 
 # Default parameters
-default_camera_url="rtsp://192.168.1.11:554/stream1"
+#default_camera_url="rtsp://192.168.1.11:554/stream1"
+default_camera_url="rtsp://192.168.1.167/"
 serial_port="/dev/ttyUL0"
 
 # Check if a camera_url parameter is passed
