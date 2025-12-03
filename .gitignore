@@ -152,3 +152,9 @@ ros2_ws/Makefile
 # Ignore very large model file
 *.xmodel
 
+# Ignore snapshots and inference results
+snapshots/*
+results/*
+ros2_ws/snapshots/*
+ros2_ws/results/*
+

@@ -496,8 +496,21 @@ public:
         cv::Mat bgr;
         cv::cvtColorTwoPlane(y, uv, bgr, cv::COLOR_YUV2BGR_NV12);
 
-        std::string filename =
-            "/tmp/snapshot_" + std::to_string(this->now().nanoseconds()) + ".jpg";
+        // Get current time
+        auto now = std::chrono::system_clock::now();
+        auto time = std::chrono::system_clock::to_time_t(now);
+
+        // Convert to local time
+        std::tm tm = *std::localtime(&time);
+
+        // Format the timestamp
+        std::ostringstream oss;
+        oss << "snapshots/snapshot_"
+            << std::put_time(&tm, "%Y%m%d_%H%M%S")  // YYYYMMDD_HHMMSS
+            << ".jpg";
+
+        std::string filename = oss.str();
+        // std::string filename = "snapshots/snapshot_" + std::to_string(this->now().nanoseconds()) + ".jpg";
 
         if (cv::imwrite(filename, bgr)) {
             RCLCPP_INFO(this->get_logger(), "Snapshot saved to %s", filename.c_str());
@@ -511,29 +524,6 @@ public:
 
         this->snapshot_publisher_->publish(msg);
     }
-
-#if 0
-    void publish_snapshot(const std::string &filename)
-    {
-        std::ifstream file(filename, std::ios::binary);
-        if (!file.is_open()) {
-            RCLCPP_ERROR(this->get_logger(), "Failed to open %s", filename.c_str());
-            return;
-        }
-
-        std::vector<unsigned char> buffer((std::istreambuf_iterator<char>(file)),
-                                          std::istreambuf_iterator<char>());
-
-        sensor_msgs::msg::CompressedImage msg;
-        msg.header.stamp = this->now();
-        msg.header.frame_id = "snapshot";
-        msg.format = "jpeg";
-        msg.data = std::move(buffer);
-
-        this->snapshot_publisher_->publish(msg);
-        RCLCPP_INFO(this->get_logger(), "Published JPEG snapshot (%lu bytes)", msg.data.size());
-    }
-#endif
 
 private:
     std::mutex mutex_;		// mutex for guarding between ROS2 node and VVAS library threads

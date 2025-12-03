@@ -36,6 +36,8 @@ if  docker image inspect $APP_IMAGE > /dev/null 2>&1 ; then
     -v $(pwd)/ros2_ws:/root/ros2_ws \
     -v $(pwd)/config/objectdetect:/opt/xilinx/kr260-wild-sight/share/vvas/objectdetect \
     -v $(pwd)/models:/opt/xilinx/kr260-wild-sight/share/vitis_ai_library/models \
+    -v $(pwd)/snapshots:/root/ros2_ws/snapshots \
+    -v $(pwd)/results:/root/ros2_ws/results \
     -it ${APP_IMAGE} bash
 
 else
