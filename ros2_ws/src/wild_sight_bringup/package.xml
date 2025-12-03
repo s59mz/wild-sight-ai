@@ -11,6 +11,7 @@
 
   <exec_depend>wild_sight_pkg</exec_depend>
   <exec_depend>rotator_py_pkg</exec_depend>
+  <exec_depend>snapshot_py_pkg</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

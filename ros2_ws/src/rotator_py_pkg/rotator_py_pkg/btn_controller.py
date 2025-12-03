@@ -24,6 +24,7 @@
 import rclpy
 from rclpy.node import Node
 from rotator_interfaces.msg import MotorCmd
+from wild_sight_interfaces.msg import TakeSnapshot
 
 import os
 import mmap
@@ -39,6 +40,9 @@ class BtnController(Node):
 
         # Publisher for /motor_control
         self.publisher_ = self.create_publisher(MotorCmd, '/motor_control', 10)
+
+        # Publisher for /take_snapshot
+        self.snapshot_publisher_ = self.create_publisher(TakeSnapshot, '/take_snapshot', 10)
 
         # Initialize button states
         self.button1_state = False
@@ -74,6 +78,9 @@ class BtnController(Node):
     def handle_button1_press(self):
         if not self.button2_state:
             self.publish_motor_cmd(32, 0)  # Pan left
+            
+            # also, take a snapshot
+            self.publish_take_snapshot()
         else:
             self.publish_motor_cmd(0, 32)  # both buttons detected, tilt up
 
@@ -94,6 +101,11 @@ class BtnController(Node):
         msg.pan_speed = pan_speed
         msg.tilt_speed = tilt_speed
         self.publisher_.publish(msg)
+
+    def publish_take_snapshot(self):
+        msg = TakeSnapshot()
+        msg.take_snapshot = True
+        self.snapshot_publisher_.publish(msg)
 
     def read_register(self, offset):
         self.mem.seek(offset)

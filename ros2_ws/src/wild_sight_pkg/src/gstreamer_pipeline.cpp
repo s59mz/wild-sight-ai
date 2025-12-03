@@ -41,6 +41,8 @@
 #include "wild_sight_interfaces/msg/object_detect.hpp"
 #include "wild_sight_interfaces/msg/camera_orientation.hpp"
 #include "wild_sight_interfaces/msg/take_snapshot.hpp"
+#include "wild_sight_interfaces/msg/send_snapshot.hpp"
+#include <sensor_msgs/msg/compressed_image.hpp>
 #include "wild_sight_pkg/cameradata.h"
 
 // tensor debug
@@ -67,8 +69,10 @@ public:
 	this->declare_parameter<std::string>("camera_url", "rtsp://192.168.1.11:554/stream1");
 	this->get_parameter("camera_url", camera_url_);
 
-	// create a publisher
+	// create a publishers
     object_detect_publisher_ = this->create_publisher<wild_sight_interfaces::msg::ObjectDetect>("object_detect", 10);
+    snapshot_publisher_ = this->create_publisher<wild_sight_interfaces::msg::SendSnapshot>("send_snapshot", 10);
+    //snapshot_publisher_ = this->create_publisher<sensor_msgs::msg::CompressedImage>("send_snapshot", 10);
 
 	// create a subscriber
     inclinometer_subscription_ = this->create_subscription<wild_sight_interfaces::msg::CameraOrientation>(
@@ -500,7 +504,36 @@ public:
         } else {
             RCLCPP_ERROR(this->get_logger(), "Failed to save snapshot");
         }
+
+        // publish the snapshot image file
+        wild_sight_interfaces::msg::SendSnapshot msg;
+        msg.filename = filename;
+
+        this->snapshot_publisher_->publish(msg);
     }
+
+#if 0
+    void publish_snapshot(const std::string &filename)
+    {
+        std::ifstream file(filename, std::ios::binary);
+        if (!file.is_open()) {
+            RCLCPP_ERROR(this->get_logger(), "Failed to open %s", filename.c_str());
+            return;
+        }
+
+        std::vector<unsigned char> buffer((std::istreambuf_iterator<char>(file)),
+                                          std::istreambuf_iterator<char>());
+
+        sensor_msgs::msg::CompressedImage msg;
+        msg.header.stamp = this->now();
+        msg.header.frame_id = "snapshot";
+        msg.format = "jpeg";
+        msg.data = std::move(buffer);
+
+        this->snapshot_publisher_->publish(msg);
+        RCLCPP_INFO(this->get_logger(), "Published JPEG snapshot (%lu bytes)", msg.data.size());
+    }
+#endif
 
 private:
     std::mutex mutex_;		// mutex for guarding between ROS2 node and VVAS library threads
@@ -513,6 +546,9 @@ private:
 
     // publisher for detected object coordinates
     rclcpp::Publisher<wild_sight_interfaces::msg::ObjectDetect>::SharedPtr object_detect_publisher_;
+
+    // publisher for taken snapshot jpeg file
+    rclcpp::Publisher<wild_sight_interfaces::msg::SendSnapshot>::SharedPtr snapshot_publisher_;
 
     // subscriber for receiving Camera's Inclinometer data
     rclcpp::Subscription<wild_sight_interfaces::msg::CameraOrientation>::SharedPtr inclinometer_subscription_;

@@ -25,6 +25,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(wild_sight_interfaces REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 # Find GStreamer
 find_package(PkgConfig REQUIRED)
@@ -41,7 +42,12 @@ include_directories(include
 )
 
 add_executable(gstreamer_pipeline src/gstreamer_pipeline.cpp)
-ament_target_dependencies(gstreamer_pipeline wild_sight_interfaces rclcpp)
+
+ament_target_dependencies(gstreamer_pipeline
+  rclcpp
+  wild_sight_interfaces
+  sensor_msgs
+)
 
 # Link GStreamer libraries
 target_link_libraries(gstreamer_pipeline 

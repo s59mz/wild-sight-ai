@@ -14,8 +14,8 @@
 #     https://www.hackster.io/matjaz4
 #
 
-APP_IMAGE="wild-sight-ai:1.0"
-# APP_IMAGE="species-net:1.0"
+# APP_IMAGE="wild-sight-ai:1.0"
+APP_IMAGE="species-net:1.0"
 
 if  docker image inspect $APP_IMAGE > /dev/null 2>&1 ; then
 
