@@ -210,6 +210,8 @@ After inference completes, the processed image is saved in the directory:
       ```
 The original snapshot and the final annotated result share similar filenames, making it easy to compare input vs. inference output. All files remain safely stored on the SD card, even after the Docker container exits.
 
+![Processed image example](https://github.com/s59mz/wild-sight-ai/blob/arm-ai-developer-challenge/IMG_1658.jpeg)
+
 This feature showcases accurate, full-precision animal detection and classification running **entirely on the Arm CPU**, without DPU acceleration or cloud services.
 
 ## License
