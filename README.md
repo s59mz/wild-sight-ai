@@ -136,16 +136,23 @@ This new pipeline demonstrates that wildlife detection and species classificatio
     pip install megadetector-utils
     ```
 
-2. **On First Run only: Download 32-bit Models**:
+5. **On First Run only: Download 32-bit Models**:
 
     In the top directory of this repo install the original SpeciesNet model:
 
     ```bash
-    cd wild-sight-ai
-    mkdir SpeciesNet
     cd SpeciesNet
     wget https://www.kaggle.com/api/v1/models/google/speciesnet/pyTorch/v4.0.1a/1/download -O speciesnet-pytorch-v4.0.1a-v1.tar.gz
     tar -xvf speciesnet-pytorch-v4.0.1a-v1.tar.gz
+    ```
+
+6. **On First Run only: Save a running Docker container as a new image**:
+
+    Make sure that the run.sh script starts this new image:
+
+    ```bash
+    docker ps
+    docker commit <id> <image-name>:tag
     ```
 
 ## Running the Application
