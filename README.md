@@ -2,7 +2,31 @@
 
 Wild-Sight-AI is a project designed for the Kria KR260 board that enables AI-driven camera tracking and animal detection. The project integrates custom hardware and software, including a RS-485 PMOD module for camera rotator control and ROS2 nodes for real-time processing and communication. Follow our comprehensive guide on [Hackster.io](https://www.hackster.io/matjaz4/wildsight-ai-real-time-human-wildlife-conflict-detection-ff65fa) to build, test, and deploy the system, transforming your camera into an intelligent, autonomous tracking device.
 
-## Requirements
+# ARM AI Developer Challenge: New CPU-Based Snapshot Inference
+
+This branch includes additional features developed specifically for the ARM AI Developer Challenge 2025.
+The key enhancement is a new snapshot-based inference pipeline that performs full-precision animal detection and classification entirely on the Arm Cortex-A53 CPU, without using the DPU or any hardware accelerator.
+
+## Snapshot Capture
+
+A physical push button, connected through the PMOD interface, triggers a ROS 2 topic that instructs the GStreamer pipeline to capture the current video frame.
+The snapshot is saved as a .jpg file to the KR260 SD card.
+
+## CPU-Only Inference (High Accuracy Mode)
+
+After the snapshot is captured, a ROS 2 Action node launches a CPU-only inference workflow using:
+	•	MegaDetector v5 (.pt) — full 32-bit precision model
+	•	SpeciesNet (.onnx) — full 32-bit precision classifier
+	•	PyTorch + ONNX Runtime, running natively on the Cortex-A53 cores
+
+This mode prioritizes accuracy over speed, and therefore takes around 2 minutes per inference on the embedded CPU.
+The resulting annotated image (with bounding boxes and class names) is written back to the SD card and can be accessed through the device’s shared storage.
+
+## Purpose of This Feature
+
+This new pipeline demonstrates that wildlife detection and species classification can run fully on Arm CPU, without the PL/DPU and without cloud services — a key requirement and focus of the ARM AI Developer Challenge.
+
+# Requirements
 
 1. **Kria KR260 Board**: Ensure that your KRIA™ KR260 board has the official Ubuntu image with updatet zocl v2.15 kernel module installed and Docker set up. The board should be prepared for running official demo applications from AMD, such as the **Smartcam demo** application.
 
