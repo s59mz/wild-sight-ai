@@ -120,6 +120,34 @@ This new pipeline demonstrates that wildlife detection and species classificatio
     colcon build
     ```
 
+3. **On First Run only: Install SpeciesNet**:
+
+    This is needed for full-precision animal detection and classification entirely on the Arm Cortex-A53 CPU, without using the DPU or any hardware accelerator.
+
+    ```bash
+    pip install speciesnet
+    ```
+
+4. **On First Run only: Install MegaDetector Utils**:
+
+    Needed for drawing bounding boxes around detected animals on snapshots:
+
+    ```bash
+    pip install megadetector-utils
+    ```
+
+2. **On First Run only: Download 32-bit Models**:
+
+    In the top directory of this repo install the original SpeciesNet model:
+
+    ```bash
+    cd wild-sight-ai
+    mkdir SpeciesNet
+    cd SpeciesNet
+    wget https://www.kaggle.com/api/v1/models/google/speciesnet/pyTorch/v4.0.1a/1/download -O speciesnet-pytorch-v4.0.1a-v1.tar.gz
+    tar -xvf speciesnet-pytorch-v4.0.1a-v1.tar.gz
+    ```
+
 ## Running the Application
 
 1. In the running Wild-Sight-AI Docker container:
