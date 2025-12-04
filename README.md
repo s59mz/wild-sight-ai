@@ -179,6 +179,38 @@ This new pipeline demonstrates that wildlife detection and species classificatio
 
     [![Wild-Sight-AI – Real-Time Animal & Human Conflict Detection on Kria DPU](https://img.youtube.com/vi/Weteg4Qui8w/hqdefault.jpg)](https://www.youtube.com/watch?v=Weteg4Qui8w)
 
+## 📸 Snapshot Capture and CPU Inference Results
+
+The application includes a snapshot feature designed for the **ARM AI Developer Challenge**.  
+It allows you to capture a single frame from the live video stream and run **high-accuracy, CPU-only inference** directly on the KR260’s Arm Cortex-A53 cores.
+
+### How to Trigger a Snapshot
+Press the **left physical push button** on a custom RS-485 module connected to the **PMOD interface**.  
+When pressed, the system:
+
+1. Captures the current video frame from the GStreamer pipeline  
+2. Saves the raw snapshot as a `.jpg` file in the folder:
+
+      ```bash
+      snapshots/
+      ```
+
+3. Starts a CPU-only inference workflow (MegaDetector + SpeciesNet)  
+4. Generates an annotated output image containing:  
+- bounding boxes  
+- class names  
+- detection confidence  
+
+### Where Results Are Stored
+After inference completes, the processed image is saved in the directory:  
+
+      ```bash
+      results/
+      ```
+The original snapshot and the final annotated result share similar filenames, making it easy to compare input vs. inference output.
+
+This feature showcases accurate, full-precision animal detection and classification running **entirely on the Arm CPU**, without DPU acceleration or cloud services.
+
 ## License
 
 This project is licensed under the GPL-3.0. See the LICENSE file for details.
