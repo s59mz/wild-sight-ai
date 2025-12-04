@@ -15,9 +15,10 @@ The snapshot is saved as a .jpg file to the KR260 SD card.
 ## CPU-Only Inference (High Accuracy Mode)
 
 After the snapshot is captured, a ROS 2 Action node launches a **CPU-only inference workflow** using:
-	•	**MegaDetector** v5 (.pt) — full 32-bit precision model
-	•	**SpeciesNet** (.onnx) — full 32-bit precision classifier
-	•	PyTorch + ONNX Runtime, running natively on the **Cortex-A53 cores**
+
+	*	**MegaDetector** v5 (.pt) — full 32-bit precision model
+	*	**SpeciesNet** (.onnx) — full 32-bit precision classifier
+	*	PyTorch + ONNX Runtime, running natively on the **Cortex-A53 cores**
 
 This mode prioritizes **accuracy over speed**, and therefore takes around **2 minutes per inference** on the embedded CPU.
 The resulting annotated image (with bounding boxes and class names) is written back to the SD card and can be accessed through the device’s shared storage.
