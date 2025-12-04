@@ -24,7 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            "snapshot_classification = snapshot_py_pkg.snapshot_classification:main"
+            'snapshot_action_server = snapshot_py_pkg.snapshot_action_server:main',
+            'snapshot_action_client = snapshot_py_pkg.snapshot_action_client:main',
         ],
     },
 )

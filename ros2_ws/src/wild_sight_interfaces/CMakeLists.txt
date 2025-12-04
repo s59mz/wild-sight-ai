@@ -29,6 +29,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 	"msg/CameraOrientation.msg"
 	"msg/TakeSnapshot.msg"
 	"msg/SendSnapshot.msg"
+	"action/ProcessImage.action"
 )
 
 ament_export_dependencies(rosidl_default_runtime)

@@ -19,6 +19,7 @@
 
     <node pkg="rotator_py_pkg" exec="led_controller" name="led_controller" />
     <node pkg="rotator_py_pkg" exec="btn_controller" name="btn_controller" />
-    <node pkg="snapshot_py_pkg" exec="snapshot_classification" name="snapshot_classification" />
+    <node pkg="snapshot_py_pkg" exec="snapshot_action_server" name="snapshot_action_server" />
+    <node pkg="snapshot_py_pkg" exec="snapshot_action_client" name="snapshot_action_client" />
 </launch>
 

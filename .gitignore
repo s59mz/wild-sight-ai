@@ -153,6 +153,7 @@ ros2_ws/Makefile
 *.xmodel
 
 # Ignore snapshots and inference results
+SpeciesNet
 snapshots/*
 results/*
 ros2_ws/snapshots/*
