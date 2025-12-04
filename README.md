@@ -4,27 +4,27 @@ Wild-Sight-AI is a project designed for the Kria KR260 board that enables AI-dri
 
 # ARM AI Developer Challenge: New CPU-Based Snapshot Inference
 
-This branch includes additional features developed specifically for the ARM AI Developer Challenge 2025.
-The key enhancement is a new snapshot-based inference pipeline that performs full-precision animal detection and classification entirely on the Arm Cortex-A53 CPU, without using the DPU or any hardware accelerator.
+This branch includes additional features developed specifically for the **ARM AI Developer Challenge 2025**.
+The key enhancement is a new **snapshot-based inference pipeline** that performs **full-precision animal detection and classification entirely on the Arm Cortex-A53 CPU**, without using the DPU or any hardware accelerator.
 
 ## Snapshot Capture
 
-A physical push button, connected through the PMOD interface, triggers a ROS 2 topic that instructs the GStreamer pipeline to capture the current video frame.
+A physical **push button**, connected through the **PMOD interface**, triggers a ROS 2 topic that instructs the GStreamer pipeline to capture the current video frame.
 The snapshot is saved as a .jpg file to the KR260 SD card.
 
 ## CPU-Only Inference (High Accuracy Mode)
 
-After the snapshot is captured, a ROS 2 Action node launches a CPU-only inference workflow using:
-	•	MegaDetector v5 (.pt) — full 32-bit precision model
-	•	SpeciesNet (.onnx) — full 32-bit precision classifier
-	•	PyTorch + ONNX Runtime, running natively on the Cortex-A53 cores
+After the snapshot is captured, a ROS 2 Action node launches a **CPU-only inference workflow** using:
+	•	**MegaDetector** v5 (.pt) — full 32-bit precision model
+	•	**SpeciesNet** (.onnx) — full 32-bit precision classifier
+	•	PyTorch + ONNX Runtime, running natively on the **Cortex-A53 cores**
 
-This mode prioritizes accuracy over speed, and therefore takes around 2 minutes per inference on the embedded CPU.
+This mode prioritizes **accuracy over speed**, and therefore takes around **2 minutes per inference** on the embedded CPU.
 The resulting annotated image (with bounding boxes and class names) is written back to the SD card and can be accessed through the device’s shared storage.
 
 ## Purpose of This Feature
 
-This new pipeline demonstrates that wildlife detection and species classification can run fully on Arm CPU, without the PL/DPU and without cloud services — a key requirement and focus of the ARM AI Developer Challenge.
+This new pipeline demonstrates that **wildlife detection and species classification can run fully on Arm CPU**, without the PL/DPU and without cloud services — a key requirement and focus of the ARM AI Developer Challenge.
 
 # Requirements
 
@@ -207,7 +207,7 @@ After inference completes, the processed image is saved in the directory:
       ```bash
       results/
       ```
-The original snapshot and the final annotated result share similar filenames, making it easy to compare input vs. inference output.
+The original snapshot and the final annotated result share similar filenames, making it easy to compare input vs. inference output. All files remain safely stored on the SD card, even after the Docker container exits.
 
 This feature showcases accurate, full-precision animal detection and classification running **entirely on the Arm CPU**, without DPU acceleration or cloud services.
 
